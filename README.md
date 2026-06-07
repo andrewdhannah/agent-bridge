@@ -42,7 +42,11 @@ npm run start
 
 - `/server`: TypeScript MCP server and HTTP bridge.
 - `/extension`: Chrome Extension (Manifest V3).
-- `/docs`: Detailed architecture and setup guides.
+- `/docs`: Detailed architecture, governance, and roadmap documentation.
+
+## 📚 Documentation
+
+For detailed guides on architecture, security, and the V1/V2 roadmap, please visit the [Documentation Index](docs/README-DOCS-INDEX.md).
 
 ## 📜 License
 MIT
