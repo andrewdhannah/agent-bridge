@@ -1,0 +1,30 @@
+{
+  "name": "agent-bridge-mcp",
+  "version": "0.1.0",
+  "description": "MCP server + HTTP bridge for queuing prompts from web AI tools (ChatGPT etc.) to local agents.",
+  "author": "Andrew Hannah",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "agent-bridge": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

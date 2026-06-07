@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+
+# Queue directories
+server/queue/
+/tmp/agent-bridge-test-queue/
