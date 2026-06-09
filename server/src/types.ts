@@ -246,6 +246,14 @@ export interface DecisionRecordItem {
   /** Thread title from the original work request. */
   queueThreadTitle: string | null;
 
+  // ── Context card (AB-9) — evidence-based, not authority-based ──────
+  /** Short text summary of the decision context (prompt title/source). */
+  contextSummary: string | null;
+  /** Which layer provided the context: 'queue' | 'custody' | 'audit' | null. */
+  contextSource: string | null;
+  /** Risk class from custody artifact, if available. */
+  riskClass: string | null;
+
   // ── Integrity summary ──────────────────────────────────────────────
   /** Overall integrity status: consistent | inconsistent | incomplete. */
   integrityStatus: string;

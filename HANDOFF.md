@@ -1,8 +1,8 @@
 # agent-bridge — Session Handoff
 
-**Sprint:** AB-8 — Decision Review / Decision Record Viewer
+**Sprint:** AB-9 — Persistent Pairing + Decision Context
 **Status:** 🔍 Pending Human Verification
-**Baseline:** cf60830 → 28f3fe9
+**Baseline:** 4b96a12 → (current)
 **Working tree:** clean
 
 ---

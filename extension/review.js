@@ -1,11 +1,16 @@
 /**
- * review.js — Decision Review Viewer Logic (AB-8).
+ * review.js — Decision Review Viewer Logic (AB-9).
  *
  * Fetches the read-only decision review payload from the bridge
  * and renders it into the review.html DOM.
  *
+ * AB-9 governing line:
+ *   Pairing proves client trust.
+ *   Context explains evidence.
+ *   Neither grants authority.
+ *
  * Read-only: no mutations, no authority fields, no identity exposure.
- * Uses HMAC-SHA256 signed requests via stored pairing config.
+ * Uses HMAC-SHA256 signed requests via persistent local pairing.
  */
 
 const BRIDGE_URL = 'http://127.0.0.1:3457';
@@ -34,10 +39,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recordCount: document.getElementById('record-count'),
     recordsContainer: document.getElementById('records-container'),
+
+    // AB-9: Pairing bar
+    pairingDot: document.getElementById('pairing-bar-dot'),
+    pairingLabel: document.getElementById('pairing-bar-label'),
+    pairingClient: document.getElementById('pairing-bar-client'),
+    pairingRevoke: document.getElementById('pairing-bar-revoke'),
   };
 
+  initPairingBar();
   loadReview();
 });
+
+// ── Pairing Persistence (AB-9) ─────────────────────────────────────────
+
+async function loadPairingConfig() {
+  // First try chrome.storage.local (persistent across reload)
+  try {
+    const result = await chrome.storage.local.get('bridgePairing');
+    if (result.bridgePairing) return result.bridgePairing;
+  } catch {
+    // Fall through to bridge fetch
+  }
+
+  // Fetch from bridge server (localhost only — safe)
+  try {
+    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
+    if (!resp.ok) return null;
+    const config = await resp.json();
+
+    // Persist for future use
+    try {
+      await chrome.storage.local.set({ bridgePairing: config });
+    } catch {
+      // Non-fatal — caching is optional
+    }
+
+    return config;
+  } catch {
+    return null;
+  }
+}
+
+async function resetPairing() {
+  try {
+    await chrome.storage.local.remove('bridgePairing');
+  } catch {
+    // Non-fatal
+  }
+  initPairingBar();
+  showError('Pairing revoked. Reload to re-pair.');
+}
+
+async function initPairingBar() {
+  try {
+    const config = await loadPairingConfig();
+    if (config) {
+      els.pairingDot.className = 'pairing-bar__dot pairing-bar__dot--paired';
+      els.pairingLabel.textContent = 'Paired';
+      els.pairingClient.textContent = config.clientId.length > 24
+        ? config.clientId.slice(0, 22) + '…' : config.clientId;
+      els.pairingClient.style.display = '';
+      els.pairingRevoke.style.display = '';
+    } else {
+      els.pairingDot.className = 'pairing-bar__dot pairing-bar__dot--unpaired';
+      els.pairingLabel.textContent = 'Not paired';
+      els.pairingClient.style.display = 'none';
+      els.pairingRevoke.style.display = 'none';
+    }
+  } catch {
+    els.pairingDot.className = 'pairing-bar__dot pairing-bar__dot--error';
+    els.pairingLabel.textContent = 'Pairing error';
+    els.pairingClient.style.display = 'none';
+    els.pairingRevoke.style.display = 'none';
+  }
+
+  els.pairingRevoke.addEventListener('click', resetPairing);
+}
 
 // ── Load pairing config and fetch review data ────────────────────────
 
@@ -148,6 +226,18 @@ function renderRecords(records) {
   }
 
   container.innerHTML = html;
+
+  // Attach expand events for truncated context
+  container.querySelectorAll('.context-card__expand').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const summary = btn.previousElementSibling;
+      if (summary) {
+        summary.classList.toggle('context-card__summary--truncated');
+        btn.textContent = summary.classList.contains('context-card__summary--truncated')
+          ? 'Show more' : 'Show less';
+      }
+    });
+  });
 }
 
 function renderRecordCard(record) {
@@ -175,6 +265,9 @@ function renderRecordCard(record) {
         ${renderProvenanceLink('Queue', record.sourceQueueItemId, !!record.queueState)}
       </div>
 
+      <!-- AB-9: Context Card -->
+      ${renderContextCard(record)}
+
       <!-- Details grid -->
       <div class="record-details">
         <div class="detail-field">
@@ -201,6 +294,72 @@ function renderRecordCard(record) {
           <span class="detail-field__label">Queue Source</span>
           <span class="detail-field__value">${escapeHtml(record.queueSource || '—')}</span>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── AB-9: Context Card ───────────────────────────────────────────────
+
+function renderContextCard(record) {
+  // Determine context source priority: custody > queue > audit
+  const contextSummary = record.contextSummary;
+  const contextSource = record.contextSource;
+  const riskClass = record.riskClass;
+
+  if (!contextSummary) {
+    // Degraded state — no context available
+    let reason = '';
+    if (!record.queueState && !record.custodyStatus) {
+      reason = 'No linked queue item or custody artifact.';
+    } else if (!record.queueState) {
+      reason = 'Queue item not found.';
+    } else {
+      reason = 'Context unavailable from linked sources.';
+    }
+    return `
+      <div class="context-card">
+        <div class="context-card__header">
+          <span class="context-card__source">Context</span>
+        </div>
+        <div class="context-card--empty">${escapeHtml(reason)}</div>
+      </div>
+    `;
+  }
+
+  // Determine source tag color
+  const sourceTag = contextSource === 'queue' ? 'Queue' :
+    contextSource === 'custody' ? 'Custody' :
+    contextSource === 'audit' ? 'Audit' : 'Evidence';
+
+  // Truncate long summaries
+  const needsTruncation = contextSummary.length > 120;
+  const displaySummary = needsTruncation ? contextSummary : contextSummary;
+
+  const riskBadge = riskClass && riskClass !== 'unknown'
+    ? `<span class="context-card__meta-item">
+         <span class="context-card__meta-label">Risk:</span>
+         <span class="librarian-risk-badge librarian-risk-badge--${riskClass.toLowerCase()}">${escapeHtml(riskClass)}</span>
+       </span>`
+    : '';
+
+  return `
+    <div class="context-card">
+      <div class="context-card__header">
+        <span class="context-card__source">
+          Context <span class="context-card__source-tag">source: ${sourceTag}</span>
+        </span>
+      </div>
+      <div class="context-card__summary ${needsTruncation ? 'context-card__summary--truncated' : ''}">
+        ${escapeHtml(contextSummary)}
+      </div>
+      ${needsTruncation ? '<button class="context-card__expand">Show more</button>' : ''}
+      <div class="context-card__meta">
+        <span class="context-card__meta-item">
+          <span class="context-card__meta-label">Integrity:</span>
+          ${escapeHtml(record.integrityStatus || '—')}
+        </span>
+        ${riskBadge}
       </div>
     </div>
   `;
@@ -264,48 +423,13 @@ function showContent() {
   els.content.style.display = '';
 }
 
-// ── Pairing helpers ──────────────────────────────────────────────────
-
-async function loadPairingConfig() {
-  // First try chrome.storage.local (fast, works offline)
-  try {
-    const result = await chrome.storage.local.get('bridgePairing');
-    if (result.bridgePairing) return result.bridgePairing;
-  } catch {
-    // Fall through to bridge fetch
-  }
-
-  // Fetch from bridge server (localhost only — safe)
-  try {
-    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
-    if (!resp.ok) return null;
-    const config = await resp.json();
-
-    // Cache for future use
-    try {
-      await chrome.storage.local.set({ bridgePairing: config });
-    } catch {
-      // Non-fatal — caching is optional
-    }
-
-    return config;
-  } catch {
-    return null;
-  }
-}
+// ── HMAC Signing ─────────────────────────────────────────────────────
 
 async function createSignedHeader(clientId, secret, method, path) {
   const timestamp = new Date().toISOString();
   const nonce = crypto.randomUUID();
   const payload = [method, path, timestamp, nonce, ''].join('\n');
 
-  // Compute HMAC-SHA256 using SubtleCrypto
-  const signature = await computeHmac(secret, payload);
-
-  return JSON.stringify({ clientId, timestamp, nonce, signature });
-}
-
-async function computeHmac(secret, payload) {
   const enc = new TextEncoder();
   const keyData = enc.encode(secret);
   const payloadData = enc.encode(payload);
@@ -317,11 +441,11 @@ async function computeHmac(secret, payload) {
 
   const sig = await crypto.subtle.sign('HMAC', key, payloadData);
 
-  // Convert to hex
-  const hex = Array.from(new Uint8Array(sig))
+  const signature = Array.from(new Uint8Array(sig))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
-  return hex;
+
+  return JSON.stringify({ clientId, timestamp, nonce, signature });
 }
 
 // ── General helpers ──────────────────────────────────────────────────

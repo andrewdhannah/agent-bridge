@@ -1,0 +1,11 @@
+/mnt/data/agent-bridge-github-refresh-pack/PACKAGE-MANIFEST.txt
+/mnt/data/agent-bridge-github-refresh-pack/README.md
+/mnt/data/agent-bridge-github-refresh-pack/assets/brand/agent-bridge-logo.png
+/mnt/data/agent-bridge-github-refresh-pack/assets/brand/agent-bridge-release-splash.png
+/mnt/data/agent-bridge-github-refresh-pack/docs/PRODUCT-OVERVIEW.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/architecture/AB-TRUST-CHAIN.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/implementation/AB-8-IMPLEMENTATION-HANDOFF.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/release/BRAND-ASSETS.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/release/GITHUB-REFRESH-INSTRUCTIONS.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/release/RELEASE-NOTES.md
+/mnt/data/agent-bridge-github-refresh-pack/docs/security/SECURITY-AUTHORITY-MODEL.md

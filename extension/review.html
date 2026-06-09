@@ -287,9 +287,138 @@
     .refresh-bar button:hover {
       background: var(--librarian-bg-muted);
     }
+
+    /* ── Pairing Status (AB-9) ──────────────────────────────────────── */
+
+    .pairing-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-3);
+      padding: var(--librarian-space-2) var(--librarian-space-4);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      background: var(--librarian-bg);
+      border-bottom: 1px solid var(--librarian-border);
+    }
+    .pairing-bar__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .pairing-bar__dot--paired   { background: var(--librarian-status-approved); }
+    .pairing-bar__dot--unpaired { background: var(--librarian-status-rejected); }
+    .pairing-bar__dot--error    { background: var(--librarian-status-needs-review); }
+    .pairing-bar__action {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-sm);
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      font-family: var(--librarian-font-family);
+      cursor: pointer;
+      color: var(--librarian-text-muted);
+    }
+    .pairing-bar__action:hover {
+      background: var(--librarian-bg-muted);
+      color: var(--librarian-status-rejected);
+    }
+
+    /* ── Context Card (AB-9) ─────────────────────────────────────────── */
+
+    .context-card {
+      background: var(--librarian-bg-subtle);
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-md);
+      padding: var(--librarian-space-3);
+      margin-bottom: var(--librarian-space-3);
+    }
+    .context-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--librarian-space-2);
+    }
+    .context-card__source {
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      font-weight: var(--librarian-font-medium);
+    }
+    .context-card__source-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: var(--librarian-radius-full);
+      font-size: 0.65rem;
+      font-weight: var(--librarian-font-medium);
+      background: var(--librarian-bg-muted);
+      color: var(--librarian-text-muted);
+    }
+    .context-card__summary {
+      font-size: var(--librarian-text-sm);
+      line-height: var(--librarian-leading-normal);
+      color: var(--librarian-text);
+      word-wrap: break-word;
+    }
+    .context-card__summary--truncated {
+      max-height: 4.5em;
+      overflow: hidden;
+      position: relative;
+    }
+    .context-card__summary--truncated::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      height: 1.5em;
+      background: linear-gradient(transparent, var(--librarian-bg-subtle));
+    }
+    .context-card__expand {
+      background: none;
+      border: none;
+      color: var(--librarian-brand);
+      font-size: var(--librarian-text-xs);
+      cursor: pointer;
+      padding: var(--librarian-space-1) 0;
+    }
+    .context-card__expand:hover {
+      text-decoration: underline;
+    }
+    .context-card__meta {
+      display: flex;
+      gap: var(--librarian-space-3);
+      flex-wrap: wrap;
+      margin-top: var(--librarian-space-2);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+    }
+    .context-card__meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-1);
+    }
+    .context-card__meta-label {
+      font-weight: var(--librarian-font-medium);
+    }
+    .context-card--empty {
+      color: var(--librarian-text-muted);
+      font-style: italic;
+      font-size: var(--librarian-text-xs);
+      text-align: center;
+      padding: var(--librarian-space-2);
+    }
   </style>
 </head>
 <body>
+  <!-- Pairing Status Bar (AB-9) -->
+  <div class="pairing-bar" id="pairing-bar">
+    <span class="pairing-bar__dot pairing-bar__dot--unpaired" id="pairing-bar-dot"></span>
+    <span id="pairing-bar-label">Checking pairing...</span>
+    <span id="pairing-bar-client" style="font-family:var(--librarian-font-mono);font-size:0.7rem"></span>
+    <button class="pairing-bar__action" id="pairing-bar-revoke" style="display:none">Revoke Pairing</button>
+  </div>
+
   <!-- Header -->
   <header class="review-header">
     <div class="review-header__top">

@@ -13,6 +13,53 @@
       box-sizing: border-box;
     }
 
+    /* ── Pairing Status Bar ──────────────────────────────────────────── */
+    .pairing-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--librarian-space-2) var(--librarian-space-4);
+      font-size: var(--librarian-text-xs);
+      border-bottom: 1px solid var(--librarian-border);
+      background: var(--librarian-bg);
+    }
+    .pairing-bar__status {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-2);
+    }
+    .pairing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .pairing-dot--paired   { background: var(--librarian-status-approved); }
+    .pairing-dot--unpaired { background: var(--librarian-status-rejected); }
+    .pairing-dot--error    { background: var(--librarian-status-needs-review); }
+    .pairing-bar__label {
+      color: var(--librarian-text-muted);
+    }
+    .pairing-bar__client {
+      color: var(--librarian-text);
+      font-family: var(--librarian-font-mono);
+      font-size: 0.7rem;
+    }
+    .pairing-bar__action {
+      background: none;
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-sm);
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      font-family: var(--librarian-font-family);
+      cursor: pointer;
+      color: var(--librarian-text-muted);
+    }
+    .pairing-bar__action:hover {
+      background: var(--librarian-bg-muted);
+      color: var(--librarian-status-rejected);
+    }
+
     /* ── Tab Navigation ────────────────────────────────────────────── */
     .tab-bar {
       display: flex;
@@ -135,6 +182,16 @@
   </style>
 </head>
 <body>
+  <!-- Pairing Status Bar (AB-9) -->
+  <div class="pairing-bar" id="pairing-bar">
+    <div class="pairing-bar__status">
+      <span class="pairing-dot pairing-dot--unpaired" id="pairing-dot"></span>
+      <span class="pairing-bar__label" id="pairing-label">Checking pairing...</span>
+      <span class="pairing-bar__client" id="pairing-client"></span>
+    </div>
+    <button class="pairing-bar__action" id="pairing-revoke-btn" style="display:none">Revoke</button>
+  </div>
+
   <!-- Tab Navigation -->
   <nav class="tab-bar">
     <button class="tab tab--active" data-tab="submit">Submit</button>

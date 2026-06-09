@@ -1,24 +1,127 @@
 /**
- * Agent Bridge — Popup Script (AB-8)
+ * Agent Bridge — Popup Script (AB-9)
  *
- * Manages tab navigation (Submit / Review) and loads the decision
- * review summary in the Review panel.
+ * Manages tab navigation (Submit / Review), persistent pairing status,
+ * pairing revoke/reset, and decision review summary.
+ *
+ * AB-9 governing line:
+ *   Pairing proves client trust.
+ *   Context explains evidence.
+ *   Neither grants authority.
  *
  * Read-only: no mutations, no authority fields.
  */
 
 const BRIDGE_URL = 'http://127.0.0.1:3457';
 
+// ── Init ───────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', () => {
-  // ── Tab navigation ──────────────────────────────────────────────
+  initPairingBar();
   initTabs();
-
-  // ── Submit tab ──────────────────────────────────────────────────
   initSubmitTab();
-
-  // ── Review tab ──────────────────────────────────────────────────
   initReviewTab();
 });
+
+// ── Pairing Persistence (AB-9) ─────────────────────────────────────────
+
+/**
+ * Pairing state for the extension.
+ * Persisted in chrome.storage.local as 'bridgePairing'.
+ * Auto-discovered from bridge via GET /api/pairing/info.
+ * Revocable by user — clearing storage forces re-discovery.
+ */
+
+async function loadPairingConfig() {
+  // First try chrome.storage.local (persistent across reload)
+  try {
+    const result = await chrome.storage.local.get('bridgePairing');
+    if (result.bridgePairing) return result.bridgePairing;
+  } catch {
+    // Fall through to bridge fetch
+  }
+
+  // Fetch from bridge server (localhost only — safe)
+  try {
+    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
+    if (!resp.ok) return null;
+    const config = await resp.json();
+
+    // Persist for future use
+    try {
+      await chrome.storage.local.set({ bridgePairing: config });
+    } catch {
+      // Non-fatal — caching is optional
+    }
+
+    return config;
+  } catch {
+    return null;
+  }
+}
+
+async function resetPairing() {
+  // Clear stored pairing and refresh UI
+  try {
+    await chrome.storage.local.remove('bridgePairing');
+  } catch {
+    // Non-fatal
+  }
+  updatePairingUI(null);
+  initPairingBar(); // re-check
+}
+
+async function getPairingStatus() {
+  const config = await loadPairingConfig();
+  return config ? { paired: true, clientId: config.clientId } : { paired: false, clientId: null };
+}
+
+// ── Pairing Status Bar UI ──────────────────────────────────────────────
+
+async function initPairingBar() {
+  const dot = document.getElementById('pairing-dot');
+  const label = document.getElementById('pairing-label');
+  const client = document.getElementById('pairing-client');
+  const revokeBtn = document.getElementById('pairing-revoke-btn');
+
+  try {
+    const config = await loadPairingConfig();
+    updatePairingUI(config);
+
+    revokeBtn.addEventListener('click', async () => {
+      await resetPairing();
+    });
+  } catch {
+    setPairingState(dot, label, client, revokeBtn, 'error', 'Pairing error');
+  }
+}
+
+function updatePairingUI(config) {
+  const dot = document.getElementById('pairing-dot');
+  const label = document.getElementById('pairing-label');
+  const client = document.getElementById('pairing-client');
+  const revokeBtn = document.getElementById('pairing-revoke-btn');
+
+  if (config) {
+    setPairingState(dot, label, client, revokeBtn, 'paired', 'Paired', config.clientId);
+  } else {
+    setPairingState(dot, label, client, revokeBtn, 'unpaired', 'Not paired — start bridge');
+  }
+}
+
+function setPairingState(dot, label, client, revokeBtn, state, text, clientId) {
+  dot.className = 'pairing-dot pairing-dot--' + state;
+  label.textContent = text;
+  if (clientId) {
+    client.textContent = clientId.length > 20 ? clientId.slice(0, 18) + '…' : clientId;
+    client.style.display = '';
+    revokeBtn.style.display = '';
+  } else {
+    client.textContent = '';
+    client.style.display = 'none';
+    revokeBtn.style.display = 'none';
+  }
+}
 
 // ── Tab Navigation ───────────────────────────────────────────────────
 
@@ -34,11 +137,9 @@ function initTabs() {
       const target = tab.dataset.tab;
       if (!target || !panels[target]) return;
 
-      // Update tab states
       tabs.forEach(t => t.classList.remove('tab--active'));
       tab.classList.add('tab--active');
 
-      // Update panel visibility
       Object.values(panels).forEach(p => p.classList.add('tab-panel--hidden'));
       panels[target].classList.remove('tab-panel--hidden');
     });
@@ -102,7 +203,7 @@ async function initReviewTab() {
   try {
     const config = await loadPairingConfig();
     if (!config) {
-      statusMsg.textContent = 'Not paired. Run bridge-pair.js.';
+      statusMsg.textContent = 'Not paired.';
       return;
     }
 
@@ -157,34 +258,6 @@ function showStatus(el, text, cls) {
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
-}
-
-async function loadPairingConfig() {
-  // First try chrome.storage.local (fast, works offline)
-  try {
-    const result = await chrome.storage.local.get('bridgePairing');
-    if (result.bridgePairing) return result.bridgePairing;
-  } catch {
-    // Fall through to bridge fetch
-  }
-
-  // Fetch from bridge server (localhost only — safe)
-  try {
-    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
-    if (!resp.ok) return null;
-    const config = await resp.json();
-
-    // Cache for future use
-    try {
-      await chrome.storage.local.set({ bridgePairing: config });
-    } catch {
-      // Non-fatal
-    }
-
-    return config;
-  } catch {
-    return null;
-  }
 }
 
 async function createSignedHeader(clientId, secret, method, path) {

@@ -1,6 +1,6 @@
 # AB-9 — Persistent Pairing + Decision Context
 
-**Status:** Planned
+**Status:** 🔍 Pending Verification
 **Owner:** OpenWork Agent
 **Dependencies:** AB-8 (`GET /api/decisions`, Decision Review Viewer), AB-7 (signed intent path), AB-6 (pairing model)
 

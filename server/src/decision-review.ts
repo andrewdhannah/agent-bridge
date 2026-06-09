@@ -93,6 +93,11 @@ export async function fetchDecisionReview(
       queueSource: matchingPacket?.source ?? null,
       queueThreadTitle: matchingPacket?.threadTitle ?? null,
 
+      // Context card (AB-9) — evidence-based, not authority-based
+      contextSummary: buildContextSummary(matchingPacket, intent),
+      contextSource: matchingPacket ? 'queue' : 'audit',
+      riskClass: matchingCustody?.executionPermission === 'not_granted' ? null : null,
+
       // Integrity summary
       integrityStatus: computeIntegrityStatus(intent.accepted, !!matchingCustody, !!matchingPacket),
     };
@@ -128,6 +133,12 @@ export async function fetchDecisionReview(
       queueState: matchingPacket?.state ?? null,
       queueSource: matchingPacket?.source ?? null,
       queueThreadTitle: matchingPacket?.threadTitle ?? null,
+
+      contextSummary: matchingPacket
+        ? buildContextSummary(matchingPacket, null)
+        : `Custody artifact: ${custody.custodyId}`,
+      contextSource: matchingPacket ? 'queue' : 'custody',
+      riskClass: null,
 
       integrityStatus: 'incomplete',
     });
@@ -198,13 +209,13 @@ function computeIntegrityStatus(
 }
 
 /**
- * Fetch all queue packets across all states for provenance lookup.
+ * Fetch all queue packets across all states for provenance lookup and context.
  */
 async function fetchAllQueuePackets(
   queueDir: string,
-): Promise<Map<string, { state: string; source: string; threadTitle: string }>> {
+): Promise<Map<string, { state: string; source: string; threadTitle: string; prompt: string; repo: string | null }>> {
   const states = ['incoming', 'approved', 'in-progress', 'complete', 'rejected'] as const;
-  const packetMap = new Map<string, { state: string; source: string; threadTitle: string }>();
+  const packetMap = new Map<string, { state: string; source: string; threadTitle: string; prompt: string; repo: string | null }>();
 
   for (const state of states) {
     try {
@@ -214,6 +225,8 @@ async function fetchAllQueuePackets(
           state: p.state,
           source: p.source,
           threadTitle: p.threadTitle,
+          prompt: p.prompt,
+          repo: p.repo ?? null,
         });
       }
     } catch {
@@ -222,4 +235,55 @@ async function fetchAllQueuePackets(
   }
 
   return packetMap;
+}
+
+/**
+ * Build an evidence-based context summary from queue packet or audit intent.
+ *
+ * Context is sourced from actual evidence — never invented by the extension.
+ * Truncated to a reasonable length for the context card UI.
+ *
+ * @param packet - Matching queue packet (if available)
+ * @param intent - Matching audit intent (if available)
+ * @returns A short human-readable summary, or null if no context available
+ */
+function buildContextSummary(
+  packet: { state: string; source: string; threadTitle: string; prompt: string; repo: string | null } | null | undefined,
+  intent: { custodyId: string; decisionIntent: string; timestamp: string } | null,
+): string | null {
+  if (packet != null) {
+    // Build context from queue packet — the richest evidence source
+    const parts: string[] = [];
+
+    if (packet.threadTitle && packet.threadTitle !== 'Untitled') {
+      parts.push(packet.threadTitle);
+    }
+
+    if (packet.repo) {
+      parts.push(`[${packet.repo}]`);
+    }
+
+    // Add a summary of the prompt (truncated for privacy/readability)
+    const promptText = packet.prompt || '';
+    const promptSummary = promptText
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 200);
+    if (promptSummary) {
+      parts.push(promptSummary);
+    }
+
+    if (parts.length === 0) {
+      return `Work from ${packet.source || 'unknown source'}`;
+    }
+
+    return parts.join(' — ');
+  }
+
+  if (intent) {
+    // Fall back to audit intent data
+    return `Decision intent ${intent.decisionIntent} for custody ${intent.custodyId.slice(0, 12)}…`;
+  }
+
+  return null;
 }
