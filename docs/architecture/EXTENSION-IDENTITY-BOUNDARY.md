@@ -142,20 +142,29 @@ When a signed decision intent arrives, The Librarian must resolve:
 - whether the requested decision is valid for the current custody state;
 - whether the assigned agent is eligible for the requested work.
 
-Example resolved decision record:
+**The resolved human identity must remain internal to The Librarian.**
+The Chrome extension must not receive, display, log, or persist resolved human
+identity fields; it may only receive status derived from the custody decision,
+such as `approved`, `rejected`, `needs_review`, or `in_custody`.
+
+Example decision record returned to the extension:
 
 ```json
 {
   "client_id": "chrome-extension-local-1",
-  "human_identity": "active_librarian_user",
-  "agent_identity": "assigned_local_agent",
   "custody_id": "CUST-2026-0001",
   "decision_intent": "approve_requested",
+  "client_signature_verified": true,
+  "librarian_session_resolved": true,
   "permission_result": "allowed",
   "decision_recorded": true,
+  "extension_visible_status": "approved",
   "execution_permission": "not_granted_until_state_transition"
 }
 ```
+
+The full human identity, role result, and agent binding are recorded in The
+Librarian's custody and audit record — they are never returned to the extension.
 
 ---
 
