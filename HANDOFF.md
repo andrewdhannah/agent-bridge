@@ -123,19 +123,35 @@ Extension Popup
 |---|---|---|
 | AB-8 | Decision Review Viewer | ✅ Complete |
 | AB-9 | Persistent Pairing + Decision Context | ✅ Complete |
-| AB-10 | Menu Bar / Taskbar Decision Intent Surface | 💭 Future candidate |
-| UX-1 | Suite UI/UX Harmonization Pass | 📋 Planned (after AB-10 or next stable cluster) |
+| AB-10 | Menu Bar / Taskbar Decision Intent Surface | Required — next |
+| UX-1 | Suite UI/UX Harmonization Pass | Required — after AB-10 |
+| REL-1 | Release packaging / GitHub refresh / docs pass | Required — after UX-1 |
 
-### AB-10 (future candidate)
-- Menu-bar/taskbar pending decision count
-- Compact decision cards
-- Signed approve/reject intent (same AB-7 path — taskbar expresses intent, Librarian records decision)
-- Not safe: taskbar calls queue_approve directly (bypasses authority model)
-- Security classes: A / B / E
+### AB-10 — Menu Bar / Taskbar Intent Surface
+
+**Purpose:** Create a compact desktop-level surface for pending decision intents and review context, allowing the human to express signed intent without opening the full app, while preserving Librarian authority validation.
+
+**Governing line:**
+```
+Taskbar expresses intent.
+The Librarian records decisions.
+```
+
+**Hard boundary:**
+- No direct approval
+- No direct queue mutation
+- No direct execution
+- No bypass around Librarian validation
+
+**Design:** Safe path only — taskbar click submits signed decision intent (same AB-7 path). Librarian validates and records. Unsafe path (direct queue_approve) is forbidden.
+
+**Security classes:** A (authority-touching), B (custody/provenance), E (visual-only)
 
 ### UX-1 — Suite UI/UX Harmonization Pass
 
-Cross-project sprint across all Agile in a Box surfaces.
+**Purpose:** Align visual language, interaction patterns, status states, empty states, warnings, badges, typography, spacing, and product identity across all Agile in a Box surfaces.
+
+**Occurs after AB-10** so the menu/taskbar surface is included in the final polish pass.
 
 **Scope:**
 
@@ -144,6 +160,9 @@ Cross-project sprint across all Agile in a Box surfaces.
 | The Librarian | Primary authority/custody app; most formal, archival feel |
 | agent-bridge | Transport/status/review surface; technical infrastructure feel |
 | Browser extension | Compact, fast, clear, no authority confusion |
+| Decision Review Viewer | Evidence-based review, read-only posture |
+| Persistent pairing UI | Paired/unpaired/error states |
+| Menu/taskbar surface | Compact intent surface (from AB-10) |
 | QA-PilotV2 | Course/runtime feel; approachable but still part of suite |
 | LINK | Advisory personality/visual layer; never decision authority |
 | Shared docs/GitHub pages | Consistent branding, diagrams, badges, README structure |
@@ -166,9 +185,11 @@ Visual consistency must not blur authority boundaries.
 - CSS classes cannot encode approval state
 - Extension visuals cannot look like final decision records unless clearly marked review-only or intent-only
 
-**When:** After AB-10 or after the next functional cluster stabilizes.
+### REL-1 — Release Packaging
 
-### Governing distinction preserved
+After UX-1: final release packaging, GitHub refresh, screenshots, docs pass.
+
+### Governing distinctions preserved
 
 ```
 Pairing proves client identity.
