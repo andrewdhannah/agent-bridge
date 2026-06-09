@@ -11,6 +11,9 @@
  *   GET  /health             — Health check (used by extension to discover bridge)
  *   GET  /api/status         — Read-only aggregated status (AB-6, requires pairing)
  *   POST /api/decision-intent— Signed decision intent from extension (AB-7, requires pairing)
+ *   GET  /api/decisions      — Read-only decision review payload (AB-8, requires pairing)
+ *
+ * AB-8 may inspect decisions. AB-8 may not make decisions.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -23,6 +26,7 @@ import { nonceStore } from './nonce-store.js';
 import { checkLibrarianSession } from './librarian-session.js';
 import { logDecisionIntent } from './audit-trail.js';
 import { fetchCustodyStatus, checkLibrarianHealth } from './custody-status.js';
+import { fetchDecisionReview } from './decision-review.js';
 import type {
   BridgeConfig, SignedEnvelope, WorkPacketSummary, WorkPacket,
   DecisionIntentRequest, DecisionIntentResponse, DecisionIntentAuditRecord,
@@ -94,6 +98,21 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
       // ── POST /api/decision-intent (AB-7 — requires pairing) ───────
       if (req.method === 'POST' && path === '/api/decision-intent') {
         await handleDecisionIntent(req, res, config);
+        return;
+      }
+
+      // ── GET|POST|PUT|DELETE /api/decisions (AB-8 — requires pairing) ─
+      if (path === '/api/decisions') {
+        if (req.method === 'GET') {
+          await handleDecisionReview(req, res, config);
+          return;
+        }
+        // POST/PUT/DELETE explicitly rejected — AB-8 is read-only
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Method Not Allowed',
+          detail: 'GET /api/decisions is the only allowed method. AB-8 is read-only.',
+        }));
         return;
       }
 
@@ -448,6 +467,53 @@ async function handleDecisionIntent(
     executionPermission: 'not_granted',
     nextRequiredAction: 'librarian_validation',
   });
+}
+
+// ── GET /api/decisions (AB-8) ──────────────────────────────────────────
+
+/**
+ * Handle GET /api/decisions — read-only decision review payload.
+ *
+ * Assembles evidence from audit trail, custody artifacts, and queue
+ * state into a structured DecisionReviewPayload.
+ *
+ * Hard constraints (AB-8):
+ *   - Read-only: no queue mutation, no custody mutation, no disk writes
+ *   - Pairing required: unverified clients receive 401 (uses AB-6 pairing)
+ *   - No approval path: returns evidence, not authority
+ *   - No human identity: all identity fields excluded
+ *   - No authority fields: vocabulary is evidence-based (intent_status,
+ *     custody_status, integrity_status — not approvalStatus, approvedBy)
+ *   - review_only: always true
+ *   - execution_permission: always not_granted
+ *   - authority_source: always thelibrarian_only
+ */
+async function handleDecisionReview(
+  req: IncomingMessage,
+  res: ServerResponse,
+  config: BridgeConfig,
+): Promise<void> {
+  // 1. Verify extension pairing (same as AB-6 / AB-7)
+  const pairingResult = await verifyRequestPairing(req, config);
+  if (!pairingResult.verified) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Unauthorized',
+      detail: pairingResult.reason,
+      note: 'Extension pairing required.',
+    }));
+    return;
+  }
+
+  // 2. Assemble decision review payload (all reads, no writes)
+  const payload = await fetchDecisionReview(
+    config.queueDir,
+    config.instanceName,
+    '0.1.0',
+  );
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload, null, 2));
 }
 
 /**

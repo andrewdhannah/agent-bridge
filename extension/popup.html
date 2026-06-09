@@ -3,67 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <title>Agent Bridge</title>
+  <link rel="stylesheet" href="theme/librarian-tokens.css">
   <style>
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: var(--librarian-font-family);
       margin: 0;
-      padding: 16px;
+      padding: 0;
       width: 360px;
       box-sizing: border-box;
     }
-    h1 {
-      font-size: 16px;
-      margin: 0 0 12px 0;
+
+    /* ── Tab Navigation ────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--librarian-border);
+      background: var(--librarian-bg);
     }
+    .tab {
+      flex: 1;
+      padding: var(--librarian-space-3);
+      text-align: center;
+      font-size: var(--librarian-text-sm);
+      font-weight: var(--librarian-font-medium);
+      color: var(--librarian-text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover {
+      color: var(--librarian-text);
+    }
+    .tab--active {
+      color: var(--librarian-brand);
+      border-bottom-color: var(--librarian-brand);
+    }
+    .tab-panel {
+      padding: var(--librarian-space-4);
+    }
+    .tab-panel--hidden {
+      display: none;
+    }
+
+    /* ── Submit Tab ────────────────────────────────────────────────── */
     label {
       display: block;
-      font-size: 12px;
-      margin-bottom: 4px;
-      color: #555;
+      font-size: var(--librarian-text-sm);
+      margin-bottom: var(--librarian-space-1);
+      color: var(--librarian-text-muted);
     }
     textarea {
       width: 100%;
       height: 120px;
-      padding: 8px;
-      font-size: 13px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      padding: var(--librarian-space-2);
+      font-size: var(--librarian-text-sm);
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-md);
       resize: vertical;
       box-sizing: border-box;
+      font-family: var(--librarian-font-family);
     }
-    button {
-      margin-top: 12px;
+    textarea:focus {
+      outline: none;
+      border-color: var(--librarian-brand);
+    }
+    #submit {
+      margin-top: var(--librarian-space-3);
       width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      background: #0066cc;
-      color: white;
+      padding: var(--librarian-space-3);
+      font-size: var(--librarian-text-sm);
+      background: var(--librarian-brand);
+      color: var(--librarian-text-inverse);
       border: none;
-      border-radius: 4px;
+      border-radius: var(--librarian-radius-md);
       cursor: pointer;
+      font-family: var(--librarian-font-family);
+      font-weight: var(--librarian-font-medium);
     }
-    button:hover {
-      background: #0052a3;
+    #submit:hover {
+      background: var(--librarian-brand-dark);
     }
-    button:disabled {
-      background: #999;
+    #submit:disabled {
+      background: var(--librarian-border);
+      color: var(--librarian-text-muted);
       cursor: not-allowed;
     }
-    #status {
-      margin-top: 10px;
-      font-size: 12px;
-      min-height: 18px;
+
+    /* ── Review Tab ────────────────────────────────────────────────── */
+    .review-summary {
+      font-size: var(--librarian-text-sm);
     }
-    #status.success { color: #2e7d32; }
-    #status.error   { color: #c62828; }
+    .review-summary p {
+      margin: var(--librarian-space-2) 0;
+    }
+    .review-summary .count-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--librarian-space-1) 0;
+    }
+    .review-summary .count-label {
+      color: var(--librarian-text-muted);
+    }
+    .review-summary .count-value {
+      font-weight: var(--librarian-font-semibold);
+    }
+    .review-link {
+      display: block;
+      text-align: center;
+      margin-top: var(--librarian-space-3);
+      padding: var(--librarian-space-2);
+      background: var(--librarian-bg-subtle);
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-md);
+      color: var(--librarian-brand);
+      text-decoration: none;
+      font-size: var(--librarian-text-sm);
+      font-weight: var(--librarian-font-medium);
+      cursor: pointer;
+    }
+    .review-link:hover {
+      background: var(--librarian-bg-muted);
+    }
+
+    #review-status-msg {
+      margin-top: var(--librarian-space-2);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <h1>Agent Bridge</h1>
-  <label for="prompt">Prompt</label>
-  <textarea id="prompt" placeholder="Paste or type the prompt to send to your local agent..."></textarea>
-  <button id="submit">Send to Agent</button>
-  <div id="status"></div>
+  <!-- Tab Navigation -->
+  <nav class="tab-bar">
+    <button class="tab tab--active" data-tab="submit">Submit</button>
+    <button class="tab" data-tab="review">Review</button>
+  </nav>
+
+  <!-- Submit Panel -->
+  <div class="tab-panel" id="panel-submit">
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" placeholder="Paste or type the prompt to send to your local agent..."></textarea>
+    <button id="submit">Send to Agent</button>
+    <div id="status"></div>
+  </div>
+
+  <!-- Review Panel -->
+  <div class="tab-panel tab-panel--hidden" id="panel-review">
+    <div class="review-summary" id="review-summary">
+      <p><strong>Decision Review</strong></p>
+      <div class="count-row">
+        <span class="count-label">Incoming</span>
+        <span class="count-value" id="r-incoming">—</span>
+      </div>
+      <div class="count-row">
+        <span class="count-label">Approved</span>
+        <span class="count-value" id="r-approved">—</span>
+      </div>
+      <div class="count-row">
+        <span class="count-label">In Progress</span>
+        <span class="count-value" id="r-in-progress">—</span>
+      </div>
+      <div class="count-row">
+        <span class="count-label">Complete</span>
+        <span class="count-value" id="r-complete">—</span>
+      </div>
+      <div class="count-row">
+        <span class="count-label">Rejected</span>
+        <span class="count-value" id="r-rejected">—</span>
+      </div>
+      <a class="review-link" id="open-review-btn" href="#">Open Full Review &rarr;</a>
+      <div id="review-status-msg"></div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

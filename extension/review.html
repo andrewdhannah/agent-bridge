@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Bridge — Decision Review</title>
+  <link rel="stylesheet" href="theme/librarian-tokens.css">
+  <style>
+    /* ====================================================================
+       AB-8: Decision Review Viewer Styles
+       ====================================================================
+       Uses SEC-1 Class E theme tokens from librarian-tokens.css.
+       No permission encoded in CSS. No authority fields in UI.
+       ==================================================================== */
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: var(--librarian-font-family);
+      font-size: var(--librarian-text-base);
+      line-height: var(--librarian-leading-normal);
+      color: var(--librarian-text);
+      background: var(--librarian-bg-subtle);
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+
+    .review-header {
+      background: var(--librarian-bg);
+      border-bottom: 1px solid var(--librarian-border);
+      padding: var(--librarian-space-6) var(--librarian-space-8);
+    }
+
+    .review-header__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--librarian-space-4);
+    }
+
+    .review-header h1 {
+      font-size: var(--librarian-text-xl);
+      font-weight: var(--librarian-font-semibold);
+      margin: 0;
+      color: var(--librarian-text);
+    }
+
+    .review-header__meta {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-3);
+      font-size: var(--librarian-text-sm);
+      color: var(--librarian-text-muted);
+      flex-wrap: wrap;
+    }
+
+    .review-header__notice {
+      margin-top: var(--librarian-space-3);
+      padding: var(--librarian-space-2) var(--librarian-space-3);
+      background: var(--librarian-bg-muted);
+      border-radius: var(--librarian-radius-md);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+    }
+
+    .review-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: var(--librarian-space-6) var(--librarian-space-4);
+    }
+
+    /* ── Summary Cards ──────────────────────────────────────────────── */
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: var(--librarian-space-3);
+      margin-bottom: var(--librarian-space-6);
+    }
+
+    .summary-card {
+      background: var(--librarian-bg);
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-lg);
+      padding: var(--librarian-space-3) var(--librarian-space-4);
+      text-align: center;
+    }
+
+    .summary-card__count {
+      font-size: var(--librarian-text-2xl);
+      font-weight: var(--librarian-font-bold);
+      line-height: 1.2;
+    }
+
+    .summary-card__label {
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      margin-top: var(--librarian-space-1);
+    }
+
+    /* ── Section ────────────────────────────────────────────────────── */
+
+    .section {
+      margin-bottom: var(--librarian-space-6);
+    }
+
+    .section__title {
+      font-size: var(--librarian-text-lg);
+      font-weight: var(--librarian-font-semibold);
+      margin: 0 0 var(--librarian-space-3) 0;
+      padding-bottom: var(--librarian-space-2);
+      border-bottom: 1px solid var(--librarian-border);
+    }
+
+    /* ── Decision Record Card ───────────────────────────────────────── */
+
+    .record-card {
+      background: var(--librarian-bg);
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-lg);
+      padding: var(--librarian-space-4);
+      margin-bottom: var(--librarian-space-3);
+    }
+
+    .record-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--librarian-space-2);
+      margin-bottom: var(--librarian-space-3);
+    }
+
+    .record-card__id {
+      font-family: var(--librarian-font-mono);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+    }
+
+    .record-card__badges {
+      display: flex;
+      gap: var(--librarian-space-2);
+      flex-wrap: wrap;
+    }
+
+    /* ── Provenance Chain ───────────────────────────────────────────── */
+
+    .provenance-chain {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-2);
+      flex-wrap: wrap;
+      padding: var(--librarian-space-2) 0;
+    }
+
+    .provenance-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--librarian-space-1);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+    }
+
+    .provenance-arrow {
+      color: var(--librarian-text-muted);
+      font-size: var(--librarian-text-sm);
+      user-select: none;
+    }
+
+    .provenance-label {
+      font-family: var(--librarian-font-mono);
+      font-size: var(--librarian-text-xs);
+      padding: 2px 6px;
+      background: var(--librarian-bg-muted);
+      border-radius: var(--librarian-radius-sm);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Record Details Grid ────────────────────────────────────────── */
+
+    .record-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--librarian-space-2);
+      margin-top: var(--librarian-space-2);
+      font-size: var(--librarian-text-sm);
+    }
+
+    .detail-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .detail-field__label {
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      font-weight: var(--librarian-font-medium);
+    }
+
+    .detail-field__value {
+      font-family: var(--librarian-font-mono);
+      font-size: var(--librarian-text-xs);
+      word-break: break-all;
+    }
+
+    .detail-field__value--missing {
+      color: var(--librarian-text-muted);
+      font-style: italic;
+    }
+
+    /* ── Empty State ────────────────────────────────────────────────── */
+
+    .empty-state {
+      text-align: center;
+      padding: var(--librarian-space-10);
+      color: var(--librarian-text-muted);
+    }
+
+    .empty-state__icon {
+      font-size: 2rem;
+      margin-bottom: var(--librarian-space-2);
+    }
+
+    .empty-state__text {
+      font-size: var(--librarian-text-sm);
+    }
+
+    /* ── Loading / Error ────────────────────────────────────────────── */
+
+    .loading-state,
+    .error-state {
+      text-align: center;
+      padding: var(--librarian-space-8);
+    }
+
+    .error-state {
+      color: var(--librarian-status-rejected);
+    }
+
+    /* ── Review Notice ──────────────────────────────────────────────── */
+
+    .review-notice {
+      display: flex;
+      align-items: center;
+      gap: var(--librarian-space-2);
+      padding: var(--librarian-space-2) var(--librarian-space-3);
+      background: var(--librarian-bg-muted);
+      border-radius: var(--librarian-radius-md);
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+      margin-bottom: var(--librarian-space-4);
+    }
+
+    .review-notice__icon {
+      font-weight: var(--librarian-font-bold);
+    }
+
+    /* ── Auto-refresh indicator ─────────────────────────────────────── */
+
+    .refresh-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--librarian-space-2) 0;
+      font-size: var(--librarian-text-xs);
+      color: var(--librarian-text-muted);
+    }
+
+    .refresh-bar button {
+      background: none;
+      border: 1px solid var(--librarian-border);
+      border-radius: var(--librarian-radius-md);
+      padding: var(--librarian-space-1) var(--librarian-space-3);
+      font-family: var(--librarian-font-family);
+      font-size: var(--librarian-text-xs);
+      cursor: pointer;
+      color: var(--librarian-text);
+    }
+
+    .refresh-bar button:hover {
+      background: var(--librarian-bg-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="review-header">
+    <div class="review-header__top">
+      <h1>Decision Review</h1>
+      <div class="review-header__meta">
+        <span id="bridge-instance">—</span>
+        <span id="review-timestamp">—</span>
+        <span id="librarian-status" class="librarian-badge">—</span>
+        <span id="review-status" class="librarian-badge">—</span>
+      </div>
+    </div>
+    <div class="review-header__notice">
+      <strong>AB-8 Review Only:</strong> This view displays evidence from the decision chain.
+      It does not grant authority. All actions must be performed through the approved channels.
+    </div>
+  </header>
+
+  <div class="review-content">
+    <!-- Evidence authority notice -->
+    <div class="review-notice">
+      <span class="review-notice__icon">&#9432;</span>
+      <span>
+        Review-only payload. <code>execution_permission: not_granted</code>.
+        <code>authority_source: thelibrarian_only</code>.
+        No identity or authority fields are exposed.
+      </span>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="loading-state">
+      <p>Loading decision records...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="error-state" style="display:none">
+      <p id="error-message">Unable to load decision records.</p>
+      <button class="librarian-btn librarian-btn--secondary" onclick="loadReview()">Retry</button>
+    </div>
+
+    <!-- Review content (hidden until loaded) -->
+    <div id="review-content" style="display:none">
+
+      <!-- Queue Summary -->
+      <div class="section">
+        <h2 class="section__title">Queue Summary</h2>
+        <div class="summary-grid" id="queue-summary">
+          <div class="summary-card">
+            <div class="summary-card__count" id="q-incoming">0</div>
+            <div class="summary-card__label">Incoming</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card__count" id="q-approved">0</div>
+            <div class="summary-card__label">Approved</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card__count" id="q-in-progress">0</div>
+            <div class="summary-card__label">In Progress</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card__count" id="q-complete">0</div>
+            <div class="summary-card__label">Complete</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card__count" id="q-rejected">0</div>
+            <div class="summary-card__label">Rejected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Refresh bar -->
+      <div class="refresh-bar">
+        <span id="record-count">0 records</span>
+        <button onclick="loadReview()">Refresh</button>
+      </div>
+
+      <!-- Decision Records -->
+      <div class="section">
+        <h2 class="section__title">Decision Records</h2>
+        <div id="records-container">
+          <div class="empty-state">
+            <div class="empty-state__icon">&#128196;</div>
+            <div class="empty-state__text">No decision records available.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="review.js"></script>
+</body>
+</html>

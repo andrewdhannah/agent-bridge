@@ -201,3 +201,88 @@ export interface CustodyStatusSummary {
     custodyTimestamp: string;
   }>;
 }
+
+// ── AB-8: Decision Review / Decision Record Viewer ───────────────────────
+
+/**
+ * A single decision record joining audit trail, custody, and queue provenance.
+ *
+ * Vocabulary is evidence-based, not authority-based:
+ *   intent_status, custody_status, integrity_status — NOT approvalStatus, approvedBy
+ */
+export interface DecisionRecordItem {
+  /** Unique identifier for this decision record. */
+  recordId: string;
+  /** Timestamp when this record was assembled. */
+  reviewedAt: string;
+
+  // ── Intent layer (from AB-7 audit trail) ───────────────────────────
+  /** The original intent ID from the audit trail. */
+  intentId: string | null;
+  /** The custody artifact this intent targeted. */
+  custodyId: string | null;
+  /** What the human intended: approve_requested | reject_requested | defer_requested. */
+  intentType: string | null;
+  /** When the intent was submitted. */
+  intentTimestamp: string | null;
+  /** Status of the intent within the audit trail. */
+  intentStatus: string;
+
+  // ── Custody layer (from Librarian) ─────────────────────────────────
+  /** Status of the custody artifact (e.g. evidence_of_intent). */
+  custodyStatus: string | null;
+  /** Execution permission as recorded by Librarian. */
+  custodyExecutionPermission: string | null;
+  /** When custody was recorded. */
+  custodyTimestamp: string | null;
+
+  // ── Queue provenance layer ─────────────────────────────────────────
+  /** Source queue item ID linked from custody. */
+  sourceQueueItemId: string | null;
+  /** Current queue state of the source item. */
+  queueState: string | null;
+  /** Source of the original work request. */
+  queueSource: string | null;
+  /** Thread title from the original work request. */
+  queueThreadTitle: string | null;
+
+  // ── Integrity summary ──────────────────────────────────────────────
+  /** Overall integrity status: consistent | inconsistent | incomplete. */
+  integrityStatus: string;
+}
+
+/**
+ * Read-only decision review payload returned by GET /api/decisions.
+ *
+ * This is NOT a decision authority payload. It is an evidence assembly.
+ * The extension may inspect this data but never act on it as authority.
+ */
+export interface DecisionReviewPayload {
+  /** Identifies this as a review payload. */
+  artifactType: 'decision_review_payload';
+  /** Always true — this endpoint never performs mutations. */
+  reviewOnly: true;
+  /** Always not_granted — the bridge never grants execution. */
+  executionPermission: 'not_granted';
+  /** The sole authority source for decisions. */
+  authoritySource: 'thelibrarian_only';
+  /** Human-readable status for the extension UI. */
+  extensionVisibleStatus: string;
+  /** When this review was generated. */
+  generatedAt: string;
+
+  /** Bridge instance identity. */
+  bridge: {
+    instance: string;
+    version: string;
+  };
+
+  /** Queue state summary (read-only counts). */
+  queueSummary: QueueSummary;
+
+  /** Structured decision records joining intent + custody + provenance. */
+  records: DecisionRecordItem[];
+
+  /** Whether the Librarian MCP server is reachable. */
+  librarianHealth: 'connected' | 'disconnected' | 'unknown';
+}
