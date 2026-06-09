@@ -1,52 +1,200 @@
-# agent-bridge V0.1
+# agent-bridge
 
-`agent-bridge` is a human-in-the-loop bridge between web-based AI tools (like ChatGPT, Claude, etc.) and local agentic environments (like OpenWork/OpenCode). It allows you to capture prompts from your browser and queue them for local execution with an explicit human approval gate.
+![agent-bridge release splash](assets/brand/agent-bridge-release-splash.png)
 
-## 🚀 Overview
+**Secure browser-to-local agent handoff.**
 
-When using a web AI, you often want it to perform tasks on your local machine. Instead of copy-pasting prompts or giving a web-AI direct (and risky) access to your system, `agent-bridge` provides a secure, audited pipeline:
+`agent-bridge` is a human-validated transport layer between browser-based AI workspaces and local agentic environments. It lets a browser extension submit signed intent to a local bridge, where pairing, nonce, timestamp, audit, custody, and decision-review boundaries preserve the core rule:
 
-**Web AI** $\rightarrow$ **Chrome Extension** $\rightarrow$ **Local Bridge (HTTP)** $\rightarrow$ **Queue (JSON)** $\rightarrow$ **Human Approval (MCP)** $\rightarrow$ **Local Agent**
+> **A trust bridge, not a control channel.**
 
-## ✨ Features
+The browser may express intent. The bridge may verify and audit intent. The Librarian remains the authority layer.
 
-- **Human-in-the-Loop**: Every request is forced into an `incoming` state and requires explicit approval via MCP tools before an agent can start work.
-- **Audit Trail**: All state transitions are stored as plain JSON files on disk, providing a permanent record of what was requested and when it was completed.
-- **Secure by Design**: The Chrome extension only communicates with `localhost`. The bridge does not automatically post results back to the web, preventing unauthorized data exfiltration.
-- **MCP Integration**: Fully compatible with the Model Context Protocol (MCP), allowing agents to manage the queue using standardized tools.
+---
 
-## 🛠️ Quick Start
+## What agent-bridge does
 
-### 1. Server Setup
-```bash
-cd server
-npm install
-npm run build
-export AGENT_BRIDGE_QUEUE_DIR="/path/to/your/queue"
-npm run start
+`agent-bridge` carries structured work intent from a browser/extension surface to a local agent workflow without granting the browser, extension, bridge, or model direct authority over execution.
+
+The current architecture supports:
+
+- Human-in-the-loop queue lifecycle
+- Local bridge transport
+- Pairing-bound extension status reflection
+- Signed decision-intent submission
+- Replay protection using nonce/timestamp validation
+- Append-only audit trail for decision intents
+- Read-only custody/status reflection
+- Cross-project SEC-1 security inheritance classification
+- Planned AB-8 decision review / decision record viewer
+
+---
+
+## Governing principle
+
+```text
+AB-7 emits intent.
+SEC-1 hardens the path.
+AB-8 displays the record.
 ```
 
-### 2. Extension Setup
-1. Open Chrome and navigate to `chrome://extensions`.
-2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select the `extension/` directory.
+The implementation boundary is explicit:
 
-### 3. Workflow
-1. Capture a prompt using the **Agent Bridge** popup in your browser.
-2. Use an MCP-enabled agent to call `queue_list` to see pending work.
-3. Call `queue_approve` to move the item to the approved queue.
-4. Call `queue_start` to begin execution.
-5. Call `queue_complete` to store the final result.
+```text
+agent-bridge may transport and audit intent.
+agent-bridge may not approve, execute, or become authority.
+```
 
-## 📂 Project Structure
+---
 
-- `/server`: TypeScript MCP server and HTTP bridge.
-- `/extension`: Chrome Extension (Manifest V3).
-- `/docs`: Detailed architecture, governance, and roadmap documentation.
+## Trust chain
 
-## 📚 Documentation
+```text
+Browser / Extension
+  → Signed intent envelope
+    → agent-bridge pairing + nonce + timestamp verification
+      → append-only audit trail
+        → Librarian custody / decision record
+          → read-only extension-visible status
+```
 
-For detailed guides on architecture, security, and the V1/V2 roadmap, please visit the [Documentation Index](docs/README-DOCS-INDEX.md).
+Complete verified chain:
 
-## 📜 License
+| Sprint | Status | Role |
+|---|---:|---|
+| AB-1 | Complete | Bridge lifecycle verification |
+| AB-2 | Complete | Integration boundary specification |
+| AB-3 | Complete | Safe receipt generation, producer-side |
+| AB-4 | Complete | Safe receipt validation, receiver-side |
+| AB-5 | Complete | Controlled custody handoff, Librarian-side |
+| AB-5b | Complete | Extension identity boundary |
+| AB-6 | Complete | Read-only extension status reflection |
+| AB-7 | Complete | Signed non-authoritative decision intent channel |
+| SEC-1 | Complete | Security, privacy, intrusion, integrity baseline |
+| SEC-1A | Complete | Cross-project inheritance enforcement |
+| AB-8 | Planned | Read-only decision review / record viewer |
+
+---
+
+## Security posture
+
+agent-bridge inherits SEC-1 controls as a connected project in the Agile in a Box suite.
+
+| Component | Inheritance classes | Authority status |
+|---|---|---|
+| Bridge server | A / B / C / E | Non-authoritative transport |
+| Browser extension | A / B / C / E | Intent emitter only |
+
+The critical rule:
+
+```text
+Theme token, not permission token.
+Intent channel, not approval channel.
+Bridge transport, not authority.
+Extension affordance, not decision source.
+Librarian validation, then decision record.
+```
+
+---
+
+## Current baseline
+
+| Repository | Commit | Status |
+|---|---:|---|
+| TheLibrarian | `b61466a` | SEC-1A complete; core + LINK inheritance declared |
+| agent-bridge | `cf60830` | AB-8 sprint doc committed; Class A/B/E declared |
+| QA-PilotV2 | `8a9e9f5` | SEC-1 inheritance declared |
+
+AB-8 implementation line:
+
+```text
+AB-8 may inspect decisions.
+AB-8 may not make decisions.
+```
+
+---
+
+## Features
+
+### Local-first bridge transport
+
+The bridge runs locally and receives structured work intent from a paired browser extension.
+
+### Human validation by design
+
+The system is built around human decision custody. The bridge does not silently approve or execute work.
+
+### Signed decision intent
+
+AB-7 introduced signed decision-intent envelopes with pairing, nonce, timestamp, and replay protection.
+
+### Append-only audit trail
+
+Decision intents are recorded in an append-only JSON-lines audit trail.
+
+### Read-only status reflection
+
+AB-6 introduced paired extension status reflection without mutation paths or authority fields.
+
+### Cross-project security inheritance
+
+SEC-1A ensures connected projects inherit security controls before implementation begins.
+
+---
+
+## Planned next layer: AB-8
+
+AB-8 adds a read-only decision review surface.
+
+It should expose:
+
+```text
+extension intent
+→ bridge verification/audit
+→ custody link
+→ Librarian decision record
+→ integrity status
+→ extension-visible status
+```
+
+It must not expose or create:
+
+```text
+approval action
+queue mutation
+execution trigger
+identity leakage
+authority transfer
+CSS/display-state permission
+```
+
+---
+
+## Project structure
+
+```text
+agent-bridge/
+  server/       TypeScript local bridge server and MCP integration
+  extension/    Browser extension UI surface
+  docs/         Architecture, governance, security, and sprint documents
+  assets/       Brand and release assets
+```
+
+---
+
+## Documentation
+
+Start here:
+
+- [`docs/architecture/AB-TRUST-CHAIN.md`](docs/architecture/AB-TRUST-CHAIN.md)
+- [`docs/security/SECURITY-AUTHORITY-MODEL.md`](docs/security/SECURITY-AUTHORITY-MODEL.md)
+- [`docs/implementation/AB-8-IMPLEMENTATION-HANDOFF.md`](docs/implementation/AB-8-IMPLEMENTATION-HANDOFF.md)
+- [`docs/release/RELEASE-NOTES.md`](docs/release/RELEASE-NOTES.md)
+- [`docs/release/GITHUB-REFRESH-INSTRUCTIONS.md`](docs/release/GITHUB-REFRESH-INSTRUCTIONS.md)
+- [`docs/release/BRAND-ASSETS.md`](docs/release/BRAND-ASSETS.md)
+
+---
+
+## License
+
 MIT

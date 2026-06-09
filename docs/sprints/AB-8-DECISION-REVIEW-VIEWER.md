@@ -1,6 +1,6 @@
 # AB-8 — Decision Review / Decision Record Viewer
 
-**Status:** Planned
+**Status:** 🔍 Pending Verification
 **Owner:** OpenWork Agent
 **Dependency:** AB-7 (`POST /api/decision-intent`), SEC-1 (`docs/security/`)
 
