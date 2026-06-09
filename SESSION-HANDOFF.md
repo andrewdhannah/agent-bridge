@@ -41,13 +41,12 @@
 ## Status
 AB-1 — Agent Bridge V0.1 Verification Gate: ✅ Complete
 AB-2 — Librarian Integration Boundary Spec: ✅ Complete
-Status: Ready for controlled Librarian intake prototype (AB-3)
+AB-3 — Controlled Librarian Intake Prototype: ✅ Complete
+Status: Ready for AB-4 — Librarian Intake Contract Validation
 
 ## Next Steps
-**AB-3 — Controlled Librarian Intake Prototype**
-Goal: Prove that The Librarian can consume an `agent-bridge` queue item as an intake artifact without executing it automatically.
-Constraints: No auto-execution, no auto-approval, no browser postback, no custody bypass.
-Acceptance Test: Queue item $\rightarrow$ Intake artifact $\rightarrow$ Librarian import $\rightarrow$ Provenance record $\rightarrow$ Risk classification $\rightarrow$ No execution $\rightarrow$ Human decision.
+**AB-4 — Librarian Intake Contract Validation**
+Goal: Verify that The Librarian can validate the intake receipt schema and refuse malformed or unsafe intake artifacts.
 
 
 
