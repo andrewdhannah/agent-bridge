@@ -40,12 +40,14 @@
 
 ## Status
 AB-1 — Agent Bridge V0.1 Verification Gate: ✅ Complete
-Result: Verified safe V0.1 lifecycle
-Status: Ready for controlled Librarian integration planning
+AB-2 — Librarian Integration Boundary Spec: ✅ Complete
+Status: Ready for controlled Librarian intake prototype (AB-3)
 
 ## Next Steps
-AB-2 — Librarian Integration Boundary Spec
-Goal: Define exactly how agent-bridge may connect to The Librarian without weakening custody, approval, provenance, or local-first constraints.
+**AB-3 — Controlled Librarian Intake Prototype**
+Goal: Prove that The Librarian can consume an agent-bridge queue item as an intake artifact without executing it automatically.
+Scope: Narrow verification of intake flow without execution.
+
 
 ## Files Modified
 - agent-bridge/server/src/tools.ts (tool renaming)
