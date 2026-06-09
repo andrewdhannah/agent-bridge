@@ -2,8 +2,8 @@
 
 **Sprint:** AB-8 — Decision Review / Decision Record Viewer
 **Status:** 🔍 Pending Human Verification
-**Baseline:** cf60830 → a200651
-**Working tree:** clean (product docs committed; AB-8 implementation staged separately)
+**Baseline:** cf60830 → 28f3fe9
+**Working tree:** clean
 
 ---
 
@@ -114,4 +114,51 @@ Extension Popup
 
 1. Human verification of AB-8 (run `node tests/ab-8-decision-review.js`)
 2. Human verification of constraint compliance
-3. Any further extension UX expansion can build on the review surface
+
+## Forward Plan
+
+Three issues identified during AB-8 review:
+
+**1. Persistent Pairing** — "I don't want to give permission every time"
+   - One-time pairing → persistent `chrome.storage.local` → works until revoked
+   - Fix: auto-discovery via `GET /api/pairing/info` already added; verify persistence works
+
+**2. Decision Context** — "Show what is being approved"
+   - Viewer should show evidence context from Librarian/custody, not extension-side interpretation
+   - Prompt summary, work packet title, source URL, custody ID, receipt hash, risk class
+   - Without custody: limited context block (intent recorded, custody not linked, integrity incomplete)
+   - Key rule: viewer may explain the decision, not become the decision authority
+
+**3. Taskbar/Menu Bar Decisions** — "Decide without opening the full app"
+   - Safe: taskbar submits signed decision intent → Librarian validates → records decision
+   - Unsafe: taskbar calls queue_approve directly (bypasses authority model)
+   - Future sprint if pursued
+
+### Recommended Sprint Sequence
+
+| Sprint | Focus | SEC-1 Classes | Status |
+|---|---|---|---|
+| **AB-9** | Persistent Pairing + Decision Context | A/B/C/E | Planned |
+| **AB-10** | Menu Bar / Taskbar Decision Intent Surface | A/B/E | Future |
+
+**AB-9 scope:**
+- Persistent pairing (auto-discovery, clear paired/unpaired state)
+- Decision context cards (custody-linked, evidence-based)
+- Empty/degraded context states
+- No approval authority granted by pairing
+
+**AB-10 (future):**
+- Menu-bar/taskbar pending count
+- Compact decision cards
+- Signed approve/reject intent (same AB-7 path)
+- Librarian validation required
+- No direct queue mutation
+- Full audit trail
+
+**Governing distinction preserved:**
+```
+Pairing proves client identity.
+Pairing does not grant approval authority.
+Taskbar expresses intent.
+Librarian records the decision.
+```
