@@ -24,6 +24,8 @@ const QUEUE_DIR = process.env['AGENT_BRIDGE_QUEUE_DIR'] ?? resolve(import.meta.d
 const HTTP_PORT = parseInt(process.env['AGENT_BRIDGE_PORT'] ?? '3457', 10);
 const INSTANCE_NAME = process.env['AGENT_BRIDGE_NAME'] ?? 'agent-bridge';
 const SKIP_HTTP = process.env['AGENT_BRIDGE_SKIP_HTTP'] === 'true';
+const PAIRING_CONFIG_PATH = process.env['AGENT_BRIDGE_PAIRING_CONFIG'] 
+  ?? resolve(QUEUE_DIR, '..', 'bridge-config.json');
 
 // Validate queue dir
 if (!QUEUE_DIR) {
@@ -57,6 +59,7 @@ if (!SKIP_HTTP) {
     httpPort: HTTP_PORT,
     queueDir: QUEUE_DIR,
     instanceName: INSTANCE_NAME,
+    pairingConfigPath: PAIRING_CONFIG_PATH,
   });
 }
 

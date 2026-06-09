@@ -15,6 +15,7 @@ To strictly define the boundaries of data movement between the browser, the brid
 | **Agent** | **Browser** | UI Control, Form Input | ❌ Forbidden | No automatic browser driving |
 | **Bridge** | **Browser** | Auto-Postback / Replies | ❌ Forbidden | No automatic injection into web AI tools |
 | **Librarian** | **Bridge** | Policy Decisions | ✅ Allowed | To inform the agent of constraints |
+| **Librarian** | **Bridge** | Custody Artifact Status | ✅ Allowed | Read-only MCP queries for status reflection; no Librarian mutation (AB-6) |
 
 ## 2. Forbidden Flow Details
 - **No Auto-Injection:** The bridge must never automatically send a result back into a ChatGPT/Claude text area. The human must manually copy/paste or trigger the action.

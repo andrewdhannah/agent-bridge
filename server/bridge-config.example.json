@@ -1,0 +1,6 @@
+{
+  "clientId": "chrome-extension-local-1",
+  "clientSecret": "GENERATE_YOUR_OWN_SECRET_WITH_scripts/bridge-pair.js",
+  "pairedAt": "2026-06-09T00:00:00Z",
+  "label": "Chrome Extension"
+}

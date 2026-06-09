@@ -68,4 +68,81 @@ export interface BridgeConfig {
   queueDir: string;
   /** Human-readable name for this bridge instance. */
   instanceName: string;
+  /** Optional path to pairing config file for extension identity. */
+  pairingConfigPath?: string;
+}
+
+// ── Extension Identity (AB-5b / AB-6) ──────────────────────────────────
+
+/** Configuration for a paired extension client. */
+export interface PairingConfig {
+  /** Unique client ID (e.g. "chrome-extension-local-1"). */
+  clientId: string;
+  /** Shared HMAC secret (hex-encoded). */
+  clientSecret: string;
+  /** When this pairing was created. */
+  pairedAt: string;
+  /** Human-readable label for this client. */
+  label?: string;
+}
+
+/** Signed request envelope from a paired extension. */
+export interface SignedEnvelope {
+  clientId: string;
+  timestamp: string;
+  nonce: string;
+  bodyHash?: string;
+  signature: string;
+}
+
+/** Aggregated read-only status payload returned by GET /api/status. */
+export interface StatusPayload {
+  /** Timestamp of status generation. */
+  generatedAt: string;
+  /** Bridge instance identity. */
+  bridge: {
+    instance: string;
+    version: string;
+    uptime: number;
+  };
+  /** Queue state counts per state. */
+  queue: QueueSummary;
+  /** Individual queue item details (last 10 per state). */
+  queueItems: {
+    incoming: Array<WorkPacketSummary>;
+    approved: Array<WorkPacketSummary>;
+    'in-progress': Array<WorkPacketSummary>;
+    complete: Array<WorkPacketSummary>;
+    rejected: Array<WorkPacketSummary>;
+  };
+  /** Read-only custody artifact status from The Librarian. */
+  custody: CustodyStatusSummary | null;
+  /** Whether the Librarian MCP server is reachable. */
+  librarianHealth: 'connected' | 'disconnected';
+}
+
+/** Minimal packet fields exposed in read-only status. */
+export interface WorkPacketSummary {
+  packetId: string;
+  source: string;
+  threadTitle: string;
+  state: string;
+  capturedAt: string;
+  requiresHumanApproval: boolean;
+  hasResult: boolean;
+}
+
+/** Summary of custody artifacts as seen by the bridge. */
+export interface CustodyStatusSummary {
+  /** Number of custody artifacts found. */
+  total: number;
+  /** Recent custody items (max 10). */
+  items: Array<{
+    custodyId: string;
+    status: string;
+    executionPermission: string;
+    nextAllowedAction: string;
+    sourceQueueItemId: string;
+    custodyTimestamp: string;
+  }>;
 }

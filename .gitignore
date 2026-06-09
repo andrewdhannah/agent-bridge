@@ -7,3 +7,6 @@ dist/
 # Queue directories
 server/queue/
 /tmp/agent-bridge-test-queue/
+
+# Extension pairing config (contains client secret)
+server/bridge-config.json

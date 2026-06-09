@@ -5,16 +5,23 @@
  * the queue's `incoming/` directory as structured WorkPacket JSON files.
  *
  * Endpoints:
- *   POST /incoming    — Submit a new work packet (from extension)
- *   GET  /status      — Queue summary counts
- *   GET  /inspect/:id — Full packet details
- *   GET  /health      — Health check (used by extension to discover bridge)
+ *   POST /incoming      — Submit a new work packet (from extension)
+ *   GET  /status        — Queue summary counts
+ *   GET  /inspect/:id   — Full packet details
+ *   GET  /health        — Health check (used by extension to discover bridge)
+ *   GET  /api/status    — Read-only aggregated status (AB-6, requires pairing)
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { URL } from 'node:url';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import * as queue from './queue.js';
-import type { BridgeConfig } from './types.js';
+import * as pairing from './pairing.js';
+import { fetchCustodyStatus, checkLibrarianHealth } from './custody-status.js';
+import type { BridgeConfig, SignedEnvelope, WorkPacketSummary } from './types.js';
+import type { WorkPacket } from './types.js';
 
 /**
  * Start the HTTP bridge server. Returns the http.Server instance.
@@ -26,7 +33,7 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
     // CORS headers so the Chrome extension can reach localhost
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Signed-Request, X-Client-Id');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -67,6 +74,12 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
         return;
       }
 
+      // ── GET /api/status (AB-6 — requires extension pairing) ───────
+      if (req.method === 'GET' && path === '/api/status') {
+        await handleApiStatus(req, res, config);
+        return;
+      }
+
       // ── GET /health ───────────────────────────────────────────────
       if (req.method === 'GET' && path === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -96,6 +109,8 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
 
   return server;
 }
+
+// ── POST /incoming ────────────────────────────────────────────────────
 
 /**
  * Handle POST /incoming — parse JSON body and enqueue a work packet.
@@ -142,16 +157,123 @@ async function handleIncoming(
     requiresHumanApproval,
   });
 
-  const inspectUrl = `http://127.0.0.1:${(new URL(`http://localhost:0`)).port}/inspect/${packet.packetId}`;
-
   res.writeHead(201, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
     status: 'queued',
     packetId: packet.packetId,
     state: packet.state,
-    inspectUrl,
   }));
 }
+
+// ── GET /api/status (AB-6) ────────────────────────────────────────────
+
+/**
+ * Handle GET /api/status — read-only aggregated status for paired extension.
+ *
+ * Hard constraints:
+ *   - Read-only: no queue mutation, no Librarian mutation, no disk writes
+ *   - Pairing required: unverified clients receive 401
+ *   - No approval, execution, custody mutation, or browser postback
+ */
+async function handleApiStatus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  config: BridgeConfig,
+): Promise<void> {
+  // 1. Verify extension pairing
+  const pairingResult = await verifyRequestPairing(req, config);
+  if (!pairingResult.verified) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Unauthorized',
+      detail: pairingResult.reason,
+      note: 'Extension pairing required. See EXTENSION-IDENTITY-BOUNDARY.md.',
+    }));
+    return;
+  }
+
+  // 2. Gather queue state (read-only — file reads only)
+  const queueSummary = await queue.summary(config.queueDir);
+
+  // 3. Gather individual queue items (read-only)
+  const queueItems = {
+    incoming: await summarizePackets(config.queueDir, 'incoming'),
+    approved: await summarizePackets(config.queueDir, 'approved'),
+    'in-progress': await summarizePackets(config.queueDir, 'in-progress'),
+    complete: await summarizePackets(config.queueDir, 'complete'),
+    rejected: await summarizePackets(config.queueDir, 'rejected'),
+  };
+
+  // 4. Fetch custody status from Librarian (read-only MCP) — non-fatal if unreachable
+  const [custody, librarianHealthy] = await Promise.all([
+    fetchCustodyStatus().catch(() => null),
+    checkLibrarianHealth().catch(() => false),
+  ]);
+
+  // 5. Build response payload
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    bridge: {
+      instance: config.instanceName,
+      version: '0.1.0',
+      uptime: process.uptime(),
+    },
+    queue: queueSummary,
+    queueItems,
+    custody,
+    librarianHealth: librarianHealthy ? 'connected' : 'disconnected',
+  };
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload, null, 2));
+}
+
+/**
+ * Verify the signed request header against stored pairing config.
+ */
+async function verifyRequestPairing(
+  req: IncomingMessage,
+  config: BridgeConfig,
+): Promise<{ verified: true } | { verified: false; reason: string }> {
+  // If no pairing config path is set, pairing is not required (backward compat)
+  if (!config.pairingConfigPath) {
+    return { verified: true };
+  }
+
+  // Load pairing config
+  const pairingConfig = await pairing.loadPairingConfig(config.pairingConfigPath);
+  if (!pairingConfig) {
+    return { verified: false, reason: 'No pairing config found. Run bridge-pair.js first.' };
+  }
+
+  // Parse signed envelope from headers
+  const signedHeader = req.headers['x-signed-request'] as string | undefined;
+  if (!signedHeader) {
+    return { verified: false, reason: 'Missing X-Signed-Request header' };
+  }
+
+  let envelope: SignedEnvelope;
+  try {
+    envelope = JSON.parse(signedHeader) as SignedEnvelope;
+  } catch {
+    return { verified: false, reason: 'Invalid X-Signed-Request header format (expected JSON)' };
+  }
+
+  // Verify the signature
+  const sigResult = pairing.verifySignature(
+    pairingConfig.clientSecret,
+    envelope,
+    req.method ?? 'GET',
+    req.url ?? '/',
+  );
+
+  if (sigResult.valid) {
+    return { verified: true };
+  }
+  return { verified: false, reason: sigResult.reason };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
 
 /**
  * Read the full request body as a string.
@@ -163,4 +285,27 @@ function readBody(req: IncomingMessage): Promise<string> {
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
     req.on('error', reject);
   });
+}
+
+/**
+ * Summarize packets in a given state for read-only display.
+ */
+async function summarizePackets(
+  queueDir: string,
+  state: string,
+): Promise<WorkPacketSummary[]> {
+  try {
+    const packets = await queue.list(queueDir, state as any);
+    return packets.slice(0, 10).map((p: WorkPacket) => ({
+      packetId: p.packetId,
+      source: p.source,
+      threadTitle: p.threadTitle,
+      state: p.state,
+      capturedAt: p.capturedAt,
+      requiresHumanApproval: p.requiresHumanApproval,
+      hasResult: !!p.result,
+    }));
+  } catch {
+    return [];
+  }
 }
