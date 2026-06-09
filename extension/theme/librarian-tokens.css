@@ -1,0 +1,239 @@
+/* ==========================================================================
+   librarian-tokens.css — Shared design tokens for extension UI
+   ==========================================================================
+   AB-5b / AB-7: Theming Boundary
+   
+   The extension consumes these tokens for visual consistency with The
+   Librarian's custody/status UI. Theme consistency improves usability.
+   It does not imply authority equivalence.
+   
+   Allowed: color, typography, spacing, status badges, risk indicators
+   Forbidden: decision authority, custody mutation, approval rules,
+              execution transitions, human identity resolution
+   ========================================================================== */
+
+/* ── Brand Colors ────────────────────────────────────────────────────── */
+
+:root {
+  --librarian-brand:        #4f46e5;
+  --librarian-brand-light:  #6366f1;
+  --librarian-brand-dark:   #3730a3;
+  --librarian-accent:       #06b6d4;
+  --librarian-accent-light: #22d3ee;
+}
+
+/* ── Semantic / Status Colors ────────────────────────────────────────── */
+
+:root {
+  --librarian-status-incoming:       #6b7280;
+  --librarian-status-in-custody:     #3b82f6;
+  --librarian-status-needs-review:   #f59e0b;
+  --librarian-status-intent-recorded:#8b5cf6;
+  --librarian-status-approved:       #10b981;
+  --librarian-status-rejected:       #ef4444;
+  --librarian-status-complete:       #10b981;
+  --librarian-status-execution-not-granted: #6b7280;
+}
+
+/* ── Risk / Severity Colors ──────────────────────────────────────────── */
+
+:root {
+  --librarian-risk-low:     #10b981;
+  --librarian-risk-medium:  #f59e0b;
+  --librarian-risk-high:    #f97316;
+  --librarian-risk-critical:#ef4444;
+}
+
+/* ── Neutral Palette ─────────────────────────────────────────────────── */
+
+:root {
+  --librarian-bg:           #ffffff;
+  --librarian-bg-subtle:    #f9fafb;
+  --librarian-bg-muted:     #f3f4f6;
+  --librarian-border:       #e5e7eb;
+  --librarian-text:         #111827;
+  --librarian-text-muted:   #6b7280;
+  --librarian-text-inverse: #ffffff;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────── */
+
+:root {
+  --librarian-font-family:  -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                             Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --librarian-font-mono:    'SF Mono', 'Fira Code', 'Cascadia Code',
+                             'JetBrains Mono', Consolas, monospace;
+
+  --librarian-text-xs:  0.75rem;
+  --librarian-text-sm:  0.875rem;
+  --librarian-text-base:1rem;
+  --librarian-text-lg:  1.125rem;
+  --librarian-text-xl:  1.25rem;
+  --librarian-text-2xl: 1.5rem;
+
+  --librarian-font-normal:   400;
+  --librarian-font-medium:   500;
+  --librarian-font-semibold: 600;
+  --librarian-font-bold:     700;
+
+  --librarian-leading-tight:   1.25;
+  --librarian-leading-normal: 1.5;
+}
+
+/* ── Spacing ─────────────────────────────────────────────────────────── */
+
+:root {
+  --librarian-space-1:  0.25rem;
+  --librarian-space-2:  0.5rem;
+  --librarian-space-3:  0.75rem;
+  --librarian-space-4:  1rem;
+  --librarian-space-5:  1.25rem;
+  --librarian-space-6:  1.5rem;
+  --librarian-space-8:  2rem;
+  --librarian-space-10: 2.5rem;
+  --librarian-space-12: 3rem;
+}
+
+/* ── Border Radius ───────────────────────────────────────────────────── */
+
+:root {
+  --librarian-radius-sm:   0.25rem;
+  --librarian-radius-md:   0.375rem;
+  --librarian-radius-lg:   0.5rem;
+  --librarian-radius-xl:   0.75rem;
+  --librarian-radius-full: 9999px;
+}
+
+/* ── Shadows ─────────────────────────────────────────────────────────── */
+
+:root {
+  --librarian-shadow-sm:   0 1px 2px rgba(0, 0, 0, 0.05);
+  --librarian-shadow-md:   0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --librarian-shadow-lg:   0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --librarian-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Status Badge Classes ───────────────────────────────────────────── */
+
+.librarian-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--librarian-space-1) var(--librarian-space-2);
+  border-radius: var(--librarian-radius-full);
+  font-size: var(--librarian-text-xs);
+  font-weight: var(--librarian-font-medium);
+  line-height: var(--librarian-leading-tight);
+  white-space: nowrap;
+}
+
+.librarian-badge--incoming         { background: #f3f4f6; color: var(--librarian-status-incoming); }
+.librarian-badge--in-custody       { background: #eff6ff; color: var(--librarian-status-in-custody); }
+.librarian-badge--needs-review     { background: #fffbeb; color: var(--librarian-status-needs-review); }
+.librarian-badge--intent-recorded  { background: #f5f3ff; color: var(--librarian-status-intent-recorded); }
+.librarian-badge--approved         { background: #ecfdf5; color: var(--librarian-status-approved); }
+.librarian-badge--rejected         { background: #fef2f2; color: var(--librarian-status-rejected); }
+.librarian-badge--complete         { background: #ecfdf5; color: var(--librarian-status-complete); }
+.librarian-badge--execution-not-granted { background: #f9fafb; color: var(--librarian-status-execution-not-granted); }
+
+/* ── Risk Badge Classes ──────────────────────────────────────────────── */
+
+.librarian-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--librarian-space-1) var(--librarian-space-2);
+  border-radius: var(--librarian-radius-full);
+  font-size: var(--librarian-text-xs);
+  font-weight: var(--librarian-font-semibold);
+  line-height: var(--librarian-leading-tight);
+}
+
+.librarian-risk-badge--low      { background: #ecfdf5; color: var(--librarian-risk-low); }
+.librarian-risk-badge--medium   { background: #fffbeb; color: var(--librarian-risk-medium); }
+.librarian-risk-badge--high     { background: #fff7ed; color: var(--librarian-risk-high); }
+.librarian-risk-badge--critical { background: #fef2f2; color: var(--librarian-risk-critical); }
+
+/* ── Button Hierarchy ────────────────────────────────────────────────── */
+
+.librarian-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--librarian-space-2);
+  padding: var(--librarian-space-2) var(--librarian-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--librarian-radius-md);
+  font-family: var(--librarian-font-family);
+  font-size: var(--librarian-text-sm);
+  font-weight: var(--librarian-font-medium);
+  line-height: var(--librarian-leading-tight);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.librarian-btn--primary {
+  background: var(--librarian-brand);
+  color: var(--librarian-text-inverse);
+}
+.librarian-btn--primary:hover {
+  background: var(--librarian-brand-dark);
+}
+
+.librarian-btn--secondary {
+  background: var(--librarian-bg);
+  color: var(--librarian-text);
+  border-color: var(--librarian-border);
+}
+.librarian-btn--secondary:hover {
+  background: var(--librarian-bg-subtle);
+}
+
+.librarian-btn--ghost {
+  background: transparent;
+  color: var(--librarian-text-muted);
+}
+.librarian-btn--ghost:hover {
+  background: var(--librarian-bg-muted);
+  color: var(--librarian-text);
+}
+
+.librarian-btn--approve {
+  background: var(--librarian-status-approved);
+  color: var(--librarian-text-inverse);
+}
+.librarian-btn--reject {
+  background: var(--librarian-status-rejected);
+  color: var(--librarian-text-inverse);
+}
+
+.librarian-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Card / Container ────────────────────────────────────────────────── */
+
+.librarian-card {
+  background: var(--librarian-bg);
+  border: 1px solid var(--librarian-border);
+  border-radius: var(--librarian-radius-lg);
+  padding: var(--librarian-space-4);
+  box-shadow: var(--librarian-shadow-card);
+}
+
+.librarian-card--interactive:hover {
+  box-shadow: var(--librarian-shadow-md);
+}
+
+/* ── Light / Dark Mode (variables only — extension picks mode) ──────── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --librarian-bg:           #1f2937;
+    --librarian-bg-subtle:    #374151;
+    --librarian-bg-muted:     #4b5563;
+    --librarian-border:       #4b5563;
+    --librarian-text:         #f9fafb;
+    --librarian-text-muted:   #9ca3af;
+    --librarian-text-inverse: #111827;
+  }
+}

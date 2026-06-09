@@ -262,6 +262,36 @@ Every browser-originated decision intent should record:
 
 ---
 
+## Extension Theming Boundary
+
+The Chrome extension should use the same visual theme tokens as The Librarian
+so that browser-side status and decision-intent surfaces remain visually
+consistent with the custody interface.
+
+The shared theming layer **may** include:
+- color tokens (brand, status, semantic, neutral);
+- typography (family, scale, weight, line-height);
+- spacing and layout rhythm;
+- border radius and shadow tokens;
+- status badge styles (`incoming`, `in_custody`, `needs_review`,
+  `intent_recorded`, `rejected`);
+- risk / severity color indicators;
+- light and dark mode variables (if already present).
+
+The shared theming layer **must not** include:
+- decision authority logic;
+- custody mutation logic;
+- approval rules or state transitions;
+- execution transition rules;
+- human identity resolution;
+- policy compiler logic.
+
+Theme consistency improves usability. It does not imply authority equivalence.
+The extension UI may look like The Librarian but remains functionally
+constrained to its role: pairing, signed intents, and read-only status display.
+
+---
+
 ## Hard Constraints
 
 - The extension does not login as a human.
@@ -272,6 +302,8 @@ Every browser-originated decision intent should record:
 - The extension does not bypass The Librarian.
 - The Librarian remains the decision authority.
 - agent-bridge remains the transport and queue layer.
+- Extension theming is visual consistency only — it does not share authority,
+  custody, approval, or policy logic.
 
 ---
 
