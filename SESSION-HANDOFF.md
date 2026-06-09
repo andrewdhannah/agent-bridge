@@ -45,8 +45,10 @@ Status: Ready for controlled Librarian intake prototype (AB-3)
 
 ## Next Steps
 **AB-3 — Controlled Librarian Intake Prototype**
-Goal: Prove that The Librarian can consume an agent-bridge queue item as an intake artifact without executing it automatically.
-Scope: Narrow verification of intake flow without execution.
+Goal: Prove that The Librarian can consume an `agent-bridge` queue item as an intake artifact without executing it automatically.
+Constraints: No auto-execution, no auto-approval, no browser postback, no custody bypass.
+Acceptance Test: Queue item $\rightarrow$ Intake artifact $\rightarrow$ Librarian import $\rightarrow$ Provenance record $\rightarrow$ Risk classification $\rightarrow$ No execution $\rightarrow$ Human decision.
+
 
 
 ## Files Modified
