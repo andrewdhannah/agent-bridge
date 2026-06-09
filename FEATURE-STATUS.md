@@ -10,3 +10,4 @@
 | AB-5b — Extension Identity Boundary | ✅ Complete | Boundary doc: pairing, signed requests, decision intent ≠ approval |
 | AB-6 — Extension Status Reflection | ✅ Complete | Read-only aggregated status endpoint with HMAC pairing; 30/30 tests pass |
 | AB-7 — Browser Decision Intent Surface | ✅ Complete | Signed intent channel (POST /api/decision-intent); no queue mutation; 31/31 tests pass |
+| AB-8 — Decision Review / Record Viewer | 🔍 Planned | Read-only viewer; Class A/B/E under SEC-1 inheritance; no new approval path |

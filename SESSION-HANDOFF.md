@@ -1,93 +1,63 @@
-# Session Handoff — agent-bridge V0.1 → Post-AB-7
+# Session Handoff — agent-bridge Post-SEC-1 Baseline
 
 **Date:** 2026-06-09
 **Agent:** OpenWork
-**Summary:** Completed AB-7 — Browser Decision Intent Surface. Signed intent channel operational; 31/31 tests pass.
 
 ---
 
-## Completed This Session
+## Completed
 
-### AB-7 — Browser Decision Intent Surface (✅ Complete)
-
-**New server modules:**
-- `server/src/nonce-store.ts` — In-memory nonce dedup with TTL + periodic cleanup
-- `server/src/librarian-session.ts` — Read-only Librarian MCP session check
-- `server/src/audit-trail.ts` — Append-only JSON-lines decision intent log
-
-**Extended modules:**
-- `server/src/types.ts` — Added DecisionIntentRequest, DecisionIntentResponse, DecisionIntentAuditRecord
-- `server/src/http-server.ts` — Added POST /api/decision-intent handler
-  - Self-signed body verification (reuses AB-6 pairing.ts)
-  - Nonce dedup (replay protection)
-  - Librarian session gate
-  - Audit trail logging
-  - Extension-safe responses only (no human identity)
-
-**Test results: 31/31 PASS**
-- Valid intent accepted with `decision_intent_recorded`
-- Unpaired client gets 401
-- Invalid intent type gets 400
-- All 3 intent types accepted
-- Duplicate nonce gets 409
-- Expired timestamp gets 401
-- No human identity in any response
-- Bridge queue state unchanged (no approval, no execution)
-
----
-
-## Status
-
-| Sprint | Status | Notes |
+| Sprint | Status | Summary |
 |---|---|---|
-| AB-1 — Verification Gate | ✅ Complete | Safe V0.1 lifecycle verified |
-| AB-2 — Integration Boundary Spec | ✅ Complete | Formal contracts and boundaries defined |
-| AB-3 — Safe Receipt Generation | ✅ Complete | Producer-side safe receipt |
-| AB-4 — Safe Receipt Validation | ✅ Complete | Receiver-side 14-pt validation |
-| AB-5 — Controlled Custody Handoff | ✅ Complete | Validated receipt → custody artifact |
-| AB-5b — Extension Identity Boundary | ✅ Complete | Pairing/signing/theming boundary |
-| AB-6 — Extension Status Reflection | ✅ Complete | Read-only status; HMAC pairing enforced |
-| AB-7 — Browser Decision Intent Surface | ✅ Complete | Signed intent channel; no queue mutation |
+| AB-1 — Verification Gate | ✅ | Bridge lifecycle verified |
+| AB-2 — Integration Boundary Spec | ✅ | Formal contracts defined |
+| AB-3 — Safe Receipt Generation | ✅ | Producer-side safe receipt |
+| AB-4 — Safe Receipt Validation | ✅ | Receiver-side 14-pt validation |
+| AB-5 — Controlled Custody Handoff | ✅ | Validated receipt → custody artifact |
+| AB-5b — Extension Identity Boundary | ✅ | Pairing/signing/theming boundary |
+| AB-6 — Extension Status Reflection | ✅ | Read-only status; HMAC pairing enforced |
+| AB-7 — Signed Decision Intent Channel | ✅ | Non-authoritative intent path; 31/31 tests |
+| SEC-1 — Security/Privacy/Integrity Baseline | ✅ | 8 security docs, 2 scripts, 12 fixtures |
+| SEC-1A — Cross-Project Inheritance | ✅ | 5 inheritance declarations deployed |
+| SEC-1 inheritance policy | ✅ | Class A–E classification + sprint template |
 
-## Git Branches
+## Planned
 
-- `main` at commit `ce0c85d` — Extension theming boundary
-- Working tree has changes to commit.
-
-## Key Server Modules
-
-| Module | Purpose |
+| Sprint | Summary |
 |---|---|
-| `server/src/types.ts` | Shared types (WorkPacket, Pairing, Status, DecisionIntent) |
-| `server/src/queue.ts` | File-based queue state machine |
-| `server/src/tools.ts` | MCP tool definitions |
-| `server/src/http-server.ts` | HTTP endpoints (incoming, status, inspect, health, api/status, api/decision-intent) |
-| `server/src/pairing.ts` | HMAC-SHA256 signing + verification |
-| `server/src/custody-status.ts` | Read-only Librarian MCP queries |
-| `server/src/nonce-store.ts` | Nonce dedup for replay protection |
-| `server/src/librarian-session.ts` | Librarian availability check |
+| AB-8 — Decision Review / Record Viewer | Read-only viewer; Class A/B/E; no new approval path |
+
+## Trust Chain
+
+```
+AB-3  → Generate receipt
+AB-4  → Validate receipt
+AB-5  → Assign custody
+AB-6  → Reflect status (read-only)
+AB-7  → Submit decision intent (non-authoritative)
+SEC-1 → Security/integrity/privacy baseline
+SEC-1A→ Cross-project inheritance enforcement
+AB-8  → Review decision records (read-only) [planned]
+```
+
+## Key Files
+
+| File | Purpose |
+|---|---|
+| `server/src/pairing.ts` | HMAC-SHA256 signature verification |
+| `server/src/nonce-store.ts` | Replay protection |
 | `server/src/audit-trail.ts` | Decision intent audit log |
+| `server/src/http-server.ts` | HTTP endpoints including `/api/status`, `/api/decision-intent` |
+| `docs/security/SEC-1-INHERITANCE.md` | agent-bridge inheritance declaration |
+| `extension/SEC-1-INHERITANCE.md` | Extension inheritance declaration |
+| `docs/sprints/AB-8-DECISION-REVIEW-VIEWER.md` | AB-8 sprint plan with SEC-1 classification |
 
-## The Complete Trust Chain
-
-```
-AB-1: Bridge lifecycle verified
-AB-2: Integration boundary specified
-AB-3: Safe receipt generation (producer-side)
-AB-4: Safe receipt validation (receiver-side)
-AB-5: Controlled custody handoff (Librarian-side)
-AB-5b: Extension identity boundary defined
-AB-6: Extension status reflection (read-only)
-AB-7: Signed decision intent channel (non-authoritative)
-```
-
-## Hard Rules (do not violate in next session)
+## Hard Rules
 
 - No auto-execution, no auto-approval, no browser postback.
 - Human approval remains mandatory for all `incoming → approved` transitions.
-- The Librarian is the custody/provenance/policy layer, not the bridge.
-- Browser is intake/review surface only — no UI driving, no injection.
-- Safe receipt generation is not sufficient trust — receiver-side validation is mandatory.
-- Custody intake does not imply permission to act.
-- Extension pairing proves client, not human. Status is read-only.
-- Decision intent is not approval. Only The Librarian validates and records decisions.
+- The Librarian is the sole custody/provenance/policy authority.
+- Bridge transports intent. Extension emits intents. Neither grants authority.
+- Decision intent ≠ approval. Only Librarian-validated decisions are authoritative.
+- SEC-1 is inherited by every project touching the trust chain.
+- Every sprint must declare its SEC-1 inheritance classification.
