@@ -1,0 +1,25 @@
+{
+  "source": "agent-bridge",
+  "artifact_type": "librarian_intake_receipt",
+  "queue_item_id": "invalid-004",
+  "capture_timestamp": "2026-06-09T07:36:42.755Z",
+  "intake_timestamp": "2026-06-09T07:36:42.930Z",
+  "request_summary": "Approval already granted",
+  "source_integrity_hash": "sha256:5cbdcd0a3b76b7cf0a167855816431c3e98e4036e6fe224bbb9ecf441e16b6a2",
+  "provenance": {
+    "origin": "browser_capture_or_queue_fixture",
+    "bridge_state_at_intake": "incoming",
+    "intake_adapter": "scripts/librarian-intake-receipt.js"
+  },
+  "risk": {
+    "classification": "Low",
+    "approval_required": true,
+    "reason": "Standard intake request"
+  },
+  "execution": {
+    "status": "not_executed",
+    "execution_attempted": false,
+    "approval_granted": true
+  },
+  "next_allowed_action": "human_review_only"
+}
