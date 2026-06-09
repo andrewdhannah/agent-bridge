@@ -39,10 +39,13 @@
    - Web payload cannot disable requiresHumanApproval (forced to true)
 
 ## Status
-**agent-bridge V0.1: production-shaped V0.1 accepted**
+AB-1 — Agent Bridge V0.1 Verification Gate: ✅ Complete
+Result: Verified safe V0.1 lifecycle
+Status: Ready for controlled Librarian integration planning
 
 ## Next Steps
-No further work required on agent-bridge V0.1. The implementation is complete and verified.
+AB-2 — Librarian Integration Boundary Spec
+Goal: Define exactly how agent-bridge may connect to The Librarian without weakening custody, approval, provenance, or local-first constraints.
 
 ## Files Modified
 - agent-bridge/server/src/tools.ts (tool renaming)
