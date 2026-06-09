@@ -144,8 +144,9 @@ When a signed decision intent arrives, The Librarian must resolve:
 
 **The resolved human identity must remain internal to The Librarian.**
 The Chrome extension must not receive, display, log, or persist resolved human
-identity fields; it may only receive status derived from the custody decision,
-such as `approved`, `rejected`, `needs_review`, or `in_custody`.
+identity fields. It may only receive status derived from the custody decision,
+such as `approved`, `rejected`, `needs_review`, `in_custody`, or
+`execution_not_granted`.
 
 Example decision record returned to the extension:
 
@@ -163,8 +164,18 @@ Example decision record returned to the extension:
 }
 ```
 
-The full human identity, role result, and agent binding are recorded in The
-Librarian's custody and audit record — they are never returned to the extension.
+The full human identity, role result, team membership, and agent binding are
+recorded in The Librarian's custody and audit record — they are never returned
+to the extension.
+
+**Do not include these fields in extension-visible responses:**
+```json
+{
+  "human_identity": "active_librarian_user",
+  "agent_identity": "assigned_local_agent"
+}
+```
+Those belong only in The Librarian's internal custody and audit record.
 
 ---
 
