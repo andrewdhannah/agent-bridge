@@ -106,7 +106,7 @@ async function initReviewTab() {
       return;
     }
 
-    const signedHeader = createSignedHeader(config.clientId, config.clientSecret, 'GET', '/api/status');
+    const signedHeader = await createSignedHeader(config.clientId, config.clientSecret, 'GET', '/api/status');
 
     const response = await fetch(`${BRIDGE_URL}/api/status`, {
       method: 'GET',
@@ -160,16 +160,34 @@ function setText(id, value) {
 }
 
 async function loadPairingConfig() {
+  // First try chrome.storage.local (fast, works offline)
   try {
     const result = await chrome.storage.local.get('bridgePairing');
     if (result.bridgePairing) return result.bridgePairing;
   } catch {
-    // Fall through
+    // Fall through to bridge fetch
   }
-  return null;
+
+  // Fetch from bridge server (localhost only — safe)
+  try {
+    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
+    if (!resp.ok) return null;
+    const config = await resp.json();
+
+    // Cache for future use
+    try {
+      await chrome.storage.local.set({ bridgePairing: config });
+    } catch {
+      // Non-fatal
+    }
+
+    return config;
+  } catch {
+    return null;
+  }
 }
 
-function createSignedHeader(clientId, secret, method, path) {
+async function createSignedHeader(clientId, secret, method, path) {
   const timestamp = new Date().toISOString();
   const nonce = crypto.randomUUID();
   const payload = [method, path, timestamp, nonce, ''].join('\n');
@@ -178,7 +196,16 @@ function createSignedHeader(clientId, secret, method, path) {
   const keyData = enc.encode(secret);
   const payloadData = enc.encode(payload);
 
-  // Compute signature synchronously for simplicity
-  // (Uses HMAC via async SubtleCrypto in the full review page)
-  return JSON.stringify({ clientId, timestamp, nonce, signature: '' });
+  const key = await crypto.subtle.importKey(
+    'raw', keyData, { name: 'HMAC', hash: 'SHA-256' },
+    false, ['sign']
+  );
+
+  const sig = await crypto.subtle.sign('HMAC', key, payloadData);
+
+  const signature = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return JSON.stringify({ clientId, timestamp, nonce, signature });
 }

@@ -51,7 +51,7 @@ async function loadReview() {
       return;
     }
 
-    const signedHeader = createSignedHeader(
+    const signedHeader = await createSignedHeader(
       config.clientId,
       config.clientSecret,
       'GET',
@@ -267,28 +267,40 @@ function showContent() {
 // ── Pairing helpers ──────────────────────────────────────────────────
 
 async function loadPairingConfig() {
+  // First try chrome.storage.local (fast, works offline)
   try {
-    // Attempt to load pairing from chrome.storage.local
     const result = await chrome.storage.local.get('bridgePairing');
-    return result.bridgePairing || null;
+    if (result.bridgePairing) return result.bridgePairing;
   } catch {
-    // Fallback: fetch from bridge config endpoint
+    // Fall through to bridge fetch
+  }
+
+  // Fetch from bridge server (localhost only — safe)
+  try {
+    const resp = await fetch(`${BRIDGE_URL}/api/pairing/info`);
+    if (!resp.ok) return null;
+    const config = await resp.json();
+
+    // Cache for future use
     try {
-      const resp = await fetch(`${BRIDGE_URL}/health`);
-      return null; // pairing is configured on bridge; extension needs stored config
+      await chrome.storage.local.set({ bridgePairing: config });
     } catch {
-      return null;
+      // Non-fatal — caching is optional
     }
+
+    return config;
+  } catch {
+    return null;
   }
 }
 
-function createSignedHeader(clientId, secret, method, path) {
+async function createSignedHeader(clientId, secret, method, path) {
   const timestamp = new Date().toISOString();
   const nonce = crypto.randomUUID();
   const payload = [method, path, timestamp, nonce, ''].join('\n');
 
   // Compute HMAC-SHA256 using SubtleCrypto
-  const signature = computeHmac(secret, payload);
+  const signature = await computeHmac(secret, payload);
 
   return JSON.stringify({ clientId, timestamp, nonce, signature });
 }

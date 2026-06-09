@@ -12,6 +12,7 @@
  *   GET  /api/status         — Read-only aggregated status (AB-6, requires pairing)
  *   POST /api/decision-intent— Signed decision intent from extension (AB-7, requires pairing)
  *   GET  /api/decisions      — Read-only decision review payload (AB-8, requires pairing)
+ *   GET  /api/pairing/info   — Public pairing config for extension (no auth required, localhost only)
  *
  * AB-8 may inspect decisions. AB-8 may not make decisions.
  */
@@ -113,6 +114,12 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
           error: 'Method Not Allowed',
           detail: 'GET /api/decisions is the only allowed method. AB-8 is read-only.',
         }));
+        return;
+      }
+
+      // ── GET /api/pairing/info — public pairing config for extension ─
+      if (req.method === 'GET' && path === '/api/pairing/info') {
+        await handlePairingInfo(res, config);
         return;
       }
 
@@ -514,6 +521,36 @@ async function handleDecisionReview(
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload, null, 2));
+}
+
+// ── GET /api/pairing/info ─────────────────────────────────────────────
+
+/**
+ * Handle GET /api/pairing/info — expose the pairing config to the
+ * extension for HMAC signing.
+ *
+ * Safe for localhost-only: the bridge only accepts local connections.
+ * The extension needs the clientId and clientSecret to sign requests.
+ */
+async function handlePairingInfo(
+  res: ServerResponse,
+  config: BridgeConfig,
+): Promise<void> {
+  if (!config.pairingConfigPath) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'No pairing config configured' }));
+    return;
+  }
+
+  const pairingConfig = await pairing.loadPairingConfig(config.pairingConfigPath);
+  if (!pairingConfig) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'No pairing config found. Run bridge-pair.js first.' }));
+    return;
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(pairingConfig));
 }
 
 /**
