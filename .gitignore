@@ -10,3 +10,6 @@ server/queue/
 
 # Extension pairing config (contains client secret)
 server/bridge-config.json
+
+# Runtime audit trail
+server/audit/

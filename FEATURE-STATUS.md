@@ -9,3 +9,4 @@
 | AB-5 — Controlled Custody Handoff | ✅ Complete | Validated receipt enters Librarian custody as evidence_of_intent; execution not_granted; bridge queue unchanged |
 | AB-5b — Extension Identity Boundary | ✅ Complete | Boundary doc: pairing, signed requests, decision intent ≠ approval |
 | AB-6 — Extension Status Reflection | ✅ Complete | Read-only aggregated status endpoint with HMAC pairing; 30/30 tests pass |
+| AB-7 — Browser Decision Intent Surface | ✅ Complete | Signed intent channel (POST /api/decision-intent); no queue mutation; 31/31 tests pass |

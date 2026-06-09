@@ -5,29 +5,40 @@
  * the queue's `incoming/` directory as structured WorkPacket JSON files.
  *
  * Endpoints:
- *   POST /incoming      — Submit a new work packet (from extension)
- *   GET  /status        — Queue summary counts
- *   GET  /inspect/:id   — Full packet details
- *   GET  /health        — Health check (used by extension to discover bridge)
- *   GET  /api/status    — Read-only aggregated status (AB-6, requires pairing)
+ *   POST /incoming           — Submit a new work packet (from extension)
+ *   GET  /status             — Queue summary counts
+ *   GET  /inspect/:id        — Full packet details
+ *   GET  /health             — Health check (used by extension to discover bridge)
+ *   GET  /api/status         — Read-only aggregated status (AB-6, requires pairing)
+ *   POST /api/decision-intent— Signed decision intent from extension (AB-7, requires pairing)
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import { readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import * as queue from './queue.js';
 import * as pairing from './pairing.js';
+import { nonceStore } from './nonce-store.js';
+import { checkLibrarianSession } from './librarian-session.js';
+import { logDecisionIntent } from './audit-trail.js';
 import { fetchCustodyStatus, checkLibrarianHealth } from './custody-status.js';
-import type { BridgeConfig, SignedEnvelope, WorkPacketSummary } from './types.js';
-import type { WorkPacket } from './types.js';
+import type {
+  BridgeConfig, SignedEnvelope, WorkPacketSummary, WorkPacket,
+  DecisionIntentRequest, DecisionIntentResponse, DecisionIntentAuditRecord,
+} from './types.js';
+
+/** Valid decision intent values. */
+const VALID_INTENTS = ['approve_requested', 'reject_requested', 'defer_requested'];
 
 /**
  * Start the HTTP bridge server. Returns the http.Server instance.
  */
 export function startHttpServer(config: BridgeConfig): ReturnType<typeof createServer> {
   const { httpPort, queueDir } = config;
+
+  // Start nonce store cleanup for AB-7 replay protection
+  nonceStore.startCleanup();
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     // CORS headers so the Chrome extension can reach localhost
@@ -77,6 +88,12 @@ export function startHttpServer(config: BridgeConfig): ReturnType<typeof createS
       // ── GET /api/status (AB-6 — requires extension pairing) ───────
       if (req.method === 'GET' && path === '/api/status') {
         await handleApiStatus(req, res, config);
+        return;
+      }
+
+      // ── POST /api/decision-intent (AB-7 — requires pairing) ───────
+      if (req.method === 'POST' && path === '/api/decision-intent') {
+        await handleDecisionIntent(req, res, config);
         return;
       }
 
@@ -271,6 +288,179 @@ async function verifyRequestPairing(
     return { verified: true };
   }
   return { verified: false, reason: sigResult.reason };
+}
+
+// ── POST /api/decision-intent (AB-7) ────────────────────────────────────
+
+/**
+ * Handle POST /api/decision-intent — accept a signed decision intent from
+ * a paired extension and route it to The Librarian for validation.
+ *
+ * Hard constraints:
+ *   - No queue mutation (no approve, no reject, no state change)
+ *   - No execution (no queue_start, no queue_complete)
+ *   - No human identity returned
+ *   - Signed request required
+ *   - Nonce deduplication enforced
+ *   - Librarian session verified before acceptance
+ */
+async function handleDecisionIntent(
+  req: IncomingMessage,
+  res: ServerResponse,
+  config: BridgeConfig,
+): Promise<void> {
+  const intentId = randomUUID();
+
+  // 1. Read and parse body
+  const body = await readBody(req);
+  let data: DecisionIntentRequest;
+
+  try {
+    data = JSON.parse(body) as DecisionIntentRequest;
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      accepted: false,
+      extensionVisibleStatus: 'invalid_request',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_request_format',
+      detail: 'Invalid JSON body',
+    }));
+    return;
+  }
+
+  // 2. Validate required fields
+  if (!data.custodyId || !data.decisionIntent || !data.clientId || !data.timestamp || !data.nonce || !data.signature) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      accepted: false,
+      extensionVisibleStatus: 'missing_fields',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_request_format',
+      detail: 'Missing required fields: custodyId, decisionIntent, clientId, timestamp, nonce, signature',
+    }));
+    return;
+  }
+
+  // 4. Validate decision intent value
+  if (!VALID_INTENTS.includes(data.decisionIntent)) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      accepted: false,
+      extensionVisibleStatus: 'invalid_intent',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_request_format',
+      detail: `Invalid decision_intent. Must be one of: ${VALID_INTENTS.join(', ')}`,
+    }));
+    return;
+  }
+
+  // 5. Verify pairing (body is self-signed, reuses AB-6 signing logic)
+  const pairingConfig = await pairing.loadPairingConfig(config.pairingConfigPath ?? '');
+  if (!pairingConfig) {
+    writeDecisionResponse(res, 401, {
+      accepted: false,
+      extensionVisibleStatus: 'unauthorized',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_pairing',
+      detail: 'No pairing config found. Run bridge-pair.js first.',
+    });
+    return;
+  }
+
+  const envelope: SignedEnvelope = {
+    clientId: data.clientId,
+    timestamp: data.timestamp,
+    nonce: data.nonce,
+    bodyHash: data.bodyHash,
+    signature: data.signature,
+  };
+
+  const sigResult = pairing.verifySignature(
+    pairingConfig.clientSecret,
+    envelope,
+    req.method ?? 'POST',
+    req.url ?? '/api/decision-intent',
+    data.bodyHash,
+  );
+
+  if (!sigResult.valid) {
+    writeDecisionResponse(res, 401, {
+      accepted: false,
+      extensionVisibleStatus: 'unauthorized',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_pairing',
+      detail: sigResult.reason,
+    });
+    return;
+  }
+
+  // 6. Check nonce deduplication (replay protection)
+  if (nonceStore.isDuplicate(data.clientId, data.nonce)) {
+    writeDecisionResponse(res, 409, {
+      accepted: false,
+      extensionVisibleStatus: 'duplicate_intent',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_for_duplicate',
+      detail: 'Nonce already used. This intent appears to be a duplicate.',
+    });
+    return;
+  }
+
+  // 7. Check Librarian session
+  const sessionStatus = await checkLibrarianSession();
+  if (!sessionStatus.active) {
+    writeDecisionResponse(res, 503, {
+      accepted: false,
+      extensionVisibleStatus: 'no_active_session',
+      executionPermission: 'not_granted',
+      nextRequiredAction: 'check_librarian_connection',
+      detail: sessionStatus.reason,
+    });
+    return;
+  }
+
+  // 8. Log to audit trail
+  const auditRecord: DecisionIntentAuditRecord = {
+    intentId,
+    custodyId: data.custodyId,
+    decisionIntent: data.decisionIntent as DecisionIntentAuditRecord['decisionIntent'],
+    clientId: data.clientId,
+    timestamp: data.timestamp,
+    nonce: data.nonce,
+    bodyHash: data.bodyHash,
+    signatureVerified: true,
+    nonceFresh: true,
+    librarianSessionActive: true,
+    accepted: true,
+    receivedAt: new Date().toISOString(),
+  };
+
+  await logDecisionIntent(auditRecord).catch(() => {
+    // Non-fatal — audit failures don't block the response
+    console.error('[agent-bridge] Warning: Failed to write audit record');
+  });
+
+  // 9. Return extension-safe response
+  writeDecisionResponse(res, 200, {
+    accepted: true,
+    extensionVisibleStatus: 'decision_intent_recorded',
+    executionPermission: 'not_granted',
+    nextRequiredAction: 'librarian_validation',
+  });
+}
+
+/**
+ * Write a decision intent response with consistent error handling.
+ * Never includes human identity, agent identity, or authority fields.
+ */
+function writeDecisionResponse(
+  res: ServerResponse,
+  status: number,
+  payload: DecisionIntentResponse,
+): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────

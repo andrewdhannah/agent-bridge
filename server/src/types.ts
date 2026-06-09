@@ -132,6 +132,61 @@ export interface WorkPacketSummary {
   hasResult: boolean;
 }
 
+// ── AB-7: Decision Intent ──────────────────────────────────────────────
+
+/** Valid decision intent values an extension may submit. */
+export type DecisionIntentType = 'approve_requested' | 'reject_requested' | 'defer_requested';
+
+/** Request body for POST /api/decision-intent. */
+export interface DecisionIntentRequest {
+  /** The custody artifact the human is acting on. */
+  custodyId: string;
+  /** What the human intends: approve_requested, reject_requested, defer_requested. */
+  decisionIntent: DecisionIntentType;
+  /** Paired client identifier. */
+  clientId: string;
+  /** ISO-8601 timestamp of intent creation. */
+  timestamp: string;
+  /** Unique nonce for replay protection. */
+  nonce: string;
+  /** SHA-256 hash of the request body (without signature field). */
+  bodyHash?: string;
+  /** HMAC-SHA256 signature over method + path + timestamp + nonce + bodyHash. */
+  signature: string;
+
+  // These are not in the spec but allowed — the handler extracts them
+}
+
+/** Extension-safe response from POST /api/decision-intent. */
+export interface DecisionIntentResponse {
+  /** Whether the intent was accepted by the bridge for forwarding. */
+  accepted: boolean;
+  /** Human-readable status for the extension UI. */
+  extensionVisibleStatus: string;
+  /** Always not_granted — the bridge never grants execution. */
+  executionPermission: 'not_granted';
+  /** What the human should expect next. */
+  nextRequiredAction: string;
+  /** Optional detail when accepted is false. */
+  detail?: string;
+}
+
+/** Internal audit record for a decision intent. */
+export interface DecisionIntentAuditRecord {
+  intentId: string;
+  custodyId: string;
+  decisionIntent: DecisionIntentType;
+  clientId: string;
+  timestamp: string;
+  nonce: string;
+  bodyHash?: string;
+  signatureVerified: boolean;
+  nonceFresh: boolean;
+  librarianSessionActive: boolean;
+  accepted: boolean;
+  receivedAt: string;
+}
+
 /** Summary of custody artifacts as seen by the bridge. */
 export interface CustodyStatusSummary {
   /** Number of custody artifacts found. */
