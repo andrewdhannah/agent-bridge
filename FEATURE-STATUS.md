@@ -11,3 +11,4 @@
 | AB-6 — Extension Status Reflection | ✅ Complete | Read-only aggregated status endpoint with HMAC pairing; 30/30 tests pass |
 | AB-7 — Browser Decision Intent Surface | ✅ Complete | Signed intent channel (POST /api/decision-intent); no queue mutation; 31/31 tests pass |
 | AB-8 — Decision Review / Record Viewer | 🔍 Pending Human Verification | Read-only viewer; Class A/B/E under SEC-1 inheritance; 248/248 acceptance tests pass; no approval, queue mutation, execution trigger, identity exposure, or authority transfer |
+| AB-9 — Persistent Pairing + Decision Context | 🔍 Planned | Persistent local pairing, context cards from custody/provenance, no repeated prompts; Class A/B/C/E |
