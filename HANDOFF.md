@@ -112,53 +112,68 @@ Extension Popup
 
 ## Next Steps
 
-1. Human verification of AB-8 (run `node tests/ab-8-decision-review.js`)
+1. Human verification of AB-8 and AB-9 (run `node tests/ab-8-decision-review.js` and `node tests/ab-9-pairing-and-context.js`)
 2. Human verification of constraint compliance
 
-## Forward Plan
-
-Three issues identified during AB-8 review:
-
-**1. Persistent Pairing** — "I don't want to give permission every time"
-   - One-time pairing → persistent `chrome.storage.local` → works until revoked
-   - Fix: auto-discovery via `GET /api/pairing/info` already added; verify persistence works
-
-**2. Decision Context** — "Show what is being approved"
-   - Viewer should show evidence context from Librarian/custody, not extension-side interpretation
-   - Prompt summary, work packet title, source URL, custody ID, receipt hash, risk class
-   - Without custody: limited context block (intent recorded, custody not linked, integrity incomplete)
-   - Key rule: viewer may explain the decision, not become the decision authority
-
-**3. Taskbar/Menu Bar Decisions** — "Decide without opening the full app"
-   - Safe: taskbar submits signed decision intent → Librarian validates → records decision
-   - Unsafe: taskbar calls queue_approve directly (bypasses authority model)
-   - Future sprint if pursued
+## Forward Plan — Agile in a Box Suite
 
 ### Recommended Sprint Sequence
 
-| Sprint | Focus | SEC-1 Classes | Status |
-|---|---|---|---|
-| **AB-9** | Persistent Pairing + Decision Context | A/B/C/E | Planned |
-| **AB-10** | Menu Bar / Taskbar Decision Intent Surface | A/B/E | Future |
+| Sprint | Focus | Status |
+|---|---|---|
+| AB-8 | Decision Review Viewer | ✅ Complete |
+| AB-9 | Persistent Pairing + Decision Context | ✅ Complete |
+| AB-10 | Menu Bar / Taskbar Decision Intent Surface | 💭 Future candidate |
+| UX-1 | Suite UI/UX Harmonization Pass | 📋 Planned (after AB-10 or next stable cluster) |
 
-**AB-9 scope:**
-- Persistent pairing (auto-discovery, clear paired/unpaired state)
-- Decision context cards (custody-linked, evidence-based)
-- Empty/degraded context states
-- No approval authority granted by pairing
-
-**AB-10 (future):**
-- Menu-bar/taskbar pending count
+### AB-10 (future candidate)
+- Menu-bar/taskbar pending decision count
 - Compact decision cards
-- Signed approve/reject intent (same AB-7 path)
-- Librarian validation required
-- No direct queue mutation
-- Full audit trail
+- Signed approve/reject intent (same AB-7 path — taskbar expresses intent, Librarian records decision)
+- Not safe: taskbar calls queue_approve directly (bypasses authority model)
+- Security classes: A / B / E
 
-**Governing distinction preserved:**
+### UX-1 — Suite UI/UX Harmonization Pass
+
+Cross-project sprint across all Agile in a Box surfaces.
+
+**Scope:**
+
+| Area | Feel |
+|---|---|
+| The Librarian | Primary authority/custody app; most formal, archival feel |
+| agent-bridge | Transport/status/review surface; technical infrastructure feel |
+| Browser extension | Compact, fast, clear, no authority confusion |
+| QA-PilotV2 | Course/runtime feel; approachable but still part of suite |
+| LINK | Advisory personality/visual layer; never decision authority |
+| Shared docs/GitHub pages | Consistent branding, diagrams, badges, README structure |
+
+**Emerging visual family:**
+- Dark navy / slate base
+- Blue-to-teal trust gradient
+- Status badges, evidence cards, provenance chains
+- Monospace for infrastructure
+- Serif / archival cues for The Librarian
+- Shared caution around authority language
+
+**Hard constraint:**
+```
+Visual consistency must not blur authority boundaries.
+```
+
+- Approve-looking buttons only appear where signed intent or Librarian authority validation is correct
+- Status badges cannot imply permission
+- CSS classes cannot encode approval state
+- Extension visuals cannot look like final decision records unless clearly marked review-only or intent-only
+
+**When:** After AB-10 or after the next functional cluster stabilizes.
+
+### Governing distinction preserved
+
 ```
 Pairing proves client identity.
 Pairing does not grant approval authority.
 Taskbar expresses intent.
 Librarian records the decision.
+Visual consistency does not imply shared authority.
 ```
