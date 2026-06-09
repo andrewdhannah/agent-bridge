@@ -4,4 +4,4 @@
 |---|---|---|
 | AB-1 — Verification Gate | ✅ Complete | Verified safe V0.1 lifecycle |
 | AB-2 — Integration Boundary Spec | ✅ Complete | Formal contracts and boundaries defined |
-| AB-3 — Controlled Intake Prototype | 📅 Planned | Prove intake without auto-execution |
+| AB-3 — Controlled Intake Prototype | ✅ Complete | Proven safe intake without auto-execution |
