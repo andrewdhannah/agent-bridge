@@ -18,7 +18,15 @@ Prove that The Librarian can consume an `agent-bridge` queue item as an intake a
 4. **Provenance Recording:** The Librarian records the provenance (source, packetId, timestamp).
 5. **Risk Classification:** The Librarian classifies the risk level and identifies the required approval authority.
 6. **Execution Block:** Verify that no execution occurs automatically.
-7. **Human Decision:** Verify that a human can then explicitly approve or reject the next proposed action.
+7. **Intake Receipt Generation:** The prototype must produce a visible “intake only / not executed” receipt containing:
+    - Source: agent-bridge queue item
+    - Queue item ID
+    - Capture timestamp
+    - SHA-256 or integrity hash
+    - Derived risk / approval requirement
+    - Execution status: not executed
+    - Next allowed action: human review only
+8. **Human Decision:** Verify that a human can then explicitly approve or reject the next proposed action.
 
 ## Status
 - **State:** Planned
